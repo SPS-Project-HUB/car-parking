@@ -57,19 +57,24 @@
               timer2.innerText = "";
 
             } else if (status === "occupied") {
-              btn.disabled = true;
-              info.innerText = `Occupied by: ${data.vehicle}`;
-              const occupyStart = data.occupyTime;
-              card.occupyInterval = setInterval(() => {
-                const now = Date.now();
-                const diff = Math.floor((now - occupyStart) / 1000);
-                const mins = Math.floor(diff / 60);
-                const secs = diff % 60;
-                timer2.innerText = `🅿 Occupied: ${mins}m ${secs}s`;
-              }, 1000);
-              timer.innerText = "";
+  btn.disabled = true;
+  info.innerText = `Occupied by: ${data.vehicle || "N/A"}`;
+  
+  const occupyStart = parseInt(data.occupyTime);
+  if (!isNaN(occupyStart)) {
+    card.occupyInterval = setInterval(() => {
+      const now = Date.now();
+      const diff = Math.floor((now - occupyStart) / 1000);
+      const mins = Math.floor(diff / 60);
+      const secs = diff % 60;
+      timer2.innerText = `🅿 Occupied: ${mins}m ${secs}s`;
+    }, 1000);
+  } else {
+    timer2.innerText = "🅿 Occupied: --";
+  }
 
-            } else {
+  timer.innerText = "";
+} else {
               btn.disabled = false;
               info.innerText = "Available";
               timer.innerText = "";
