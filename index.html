@@ -395,7 +395,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getDatabase, ref, set, onValue, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAt-8RgxZbg9Cb4YtGqC9kyytjRptWNYXk",
@@ -412,7 +412,7 @@
     const slots = ["slot1", "slot2", "slot3", "slot4", "slot5"];
     let fullLogs = [];
     let occupationStartTimes = {};
-    let preBookingDurations = {}; // Track pre-booking durations
+    let lastPreBookingTimes = {}; // Store last pre-booking times for each slot
 
     const updateUI = () => {
       slots.forEach(slot => {
@@ -437,14 +437,24 @@
               btn.disabled = true;
               info.innerText = `Booked by: ${data.vehicle}`;
               const bookingStart = data.bookingTime || Date.now();
+              
+              // Store the last pre-booking time when slot is booked
+              lastPreBookingTimes[slot] = {
+                start: bookingStart,
+                end: null
+              };
+              
               card.timerInterval = setInterval(() => {
                 const now = Date.now();
                 const diff = Math.floor((now - bookingStart) / 1000);
                 const mins = Math.floor(diff / 60);
                 const secs = diff % 60;
                 timer.innerText = `⏱ Pre-Booking: ${mins}m ${secs}s`;
-                // Store the current pre-booking duration
-                preBookingDurations[slot] = `${mins}m ${secs}s`;
+                
+                // Update the last pre-booking time continuously
+                if (lastPreBookingTimes[slot]) {
+                  lastPreBookingTimes[slot].end = now;
+                }
               }, 1000);
               timer2.innerText = "";
 
@@ -454,14 +464,6 @@
               
               if (!occupationStartTimes[slot] || card.previousStatus !== "occupied") {
                 occupationStartTimes[slot] = Date.now();
-                // Log the parking session with pre-booking duration
-                logParkingSession(
-                  slot, 
-                  data.vehicle, 
-                  data.bookingTime, 
-                  Date.now(),
-                  preBookingDurations[slot] || "0s"
-                );
               }
               
               card.occupyInterval = setInterval(() => {
@@ -473,49 +475,17 @@
               }, 1000);
               timer.innerText = "";
 
-            } else if (status === "available" && card.previousStatus === "occupied") {
-              // Log when vehicle vacates
-              logVacateTime(slot, Date.now());
-              delete preBookingDurations[slot];
             } else {
               btn.disabled = false;
               info.innerText = "Available";
               timer.innerText = "";
               timer2.innerText = "";
               delete occupationStartTimes[slot];
-              delete preBookingDurations[slot];
             }
             
             card.previousStatus = status;
           }
         });
-      });
-    };
-
-    const logParkingSession = (slot, vehicle, bookingTime, occupyTime, preBookingDuration) => {
-      const logsRef = ref(db, "parkingLogs");
-      const newLogRef = push(logsRef);
-      set(newLogRef, {
-        slot: slot,
-        vehicle: vehicle,
-        bookingTime: bookingTime,
-        occupyTime: occupyTime,
-        preBookingDuration: preBookingDuration,
-        vacateTime: null
-      });
-    };
-
-    const logVacateTime = (slot, vacateTime) => {
-      const logsRef = ref(db, "parkingLogs");
-      onValue(logsRef, (snapshot) => {
-        const logs = snapshot.val();
-        if (logs) {
-          Object.entries(logs).forEach(([key, log]) => {
-            if (log.slot === slot && !log.vacateTime) {
-              set(ref(db, `parkingLogs/${key}/vacateTime`), vacateTime);
-            }
-          });
-        }
       });
     };
 
@@ -549,22 +519,13 @@
       return date.toLocaleString(undefined, options);
     };
 
-    const createLogRow = (log) => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${log.slot}</td>
-        <td>${log.vehicle}</td>
-        <td>${formatTime(log.bookingTime)}</td>
-        <td>${log.preBookingDuration || "0s"}</td>
-        <td>${log.vacateTime ? formatDuration(log.occupyTime, log.vacateTime) : "Still parked"}</td>
-      `;
-      return row;
-    };
-
     const formatDuration = (startMs, endMs) => {
       if (!startMs || !endMs) return "-";
       
-      const diffSeconds = Math.floor((endMs - startMs) / 1000);
+      // Ensure positive duration
+      const diffMs = Math.max(0, endMs - startMs);
+      const diffSeconds = Math.floor(diffMs / 1000);
+      
       const hours = Math.floor(diffSeconds / 3600);
       const minutes = Math.floor((diffSeconds % 3600) / 60);
       const seconds = diffSeconds % 60;
@@ -574,7 +535,32 @@
       if (minutes > 0 || hours > 0) parts.push(`${minutes}m`);
       parts.push(`${seconds}s`);
       
-      return parts.join(" ");
+      return parts.join(" ") || "0s";
+    };
+
+    const createLogRow = (log) => {
+      const row = document.createElement("tr");
+      
+      // Calculate time to occupy - use the last pre-booking time if available
+      let timeToOccupy = "Not occupied";
+      if (log.occupyTime) {
+        timeToOccupy = formatDuration(log.bookingTime, log.occupyTime);
+      } else if (lastPreBookingTimes[log.slot] && lastPreBookingTimes[log.slot].end) {
+        // If not occupied yet but we have a pre-booking time, show that
+        const preBookTime = lastPreBookingTimes[log.slot];
+        timeToOccupy = `Pre-booked for ${formatDuration(preBookTime.start, preBookTime.end)}`;
+      }
+      
+      const parkingDuration = log.vacateTime ? formatDuration(log.occupyTime, log.vacateTime) : "Still parked";
+      
+      row.innerHTML = `
+        <td>${log.slot}</td>
+        <td>${log.vehicle}</td>
+        <td>${formatTime(log.bookingTime)}</td>
+        <td>${timeToOccupy}</td>
+        <td>${parkingDuration}</td>
+      `;
+      return row;
     };
 
     const filterLogs = () => {
@@ -593,7 +579,14 @@
     const downloadCSV = () => {
       let csv = "Slot,Vehicle,Booking Time,Time to Occupy,Parking Duration\n";
       fullLogs.forEach(log => {
-        const timeToOccupy = log.preBookingDuration || "0s";
+        let timeToOccupy = "Not occupied";
+        if (log.occupyTime) {
+          timeToOccupy = formatDuration(log.bookingTime, log.occupyTime);
+        } else if (lastPreBookingTimes[log.slot] && lastPreBookingTimes[log.slot].end) {
+          const preBookTime = lastPreBookingTimes[log.slot];
+          timeToOccupy = `Pre-booked for ${formatDuration(preBookTime.start, preBookTime.end)}`;
+        }
+        
         const parkingDuration = log.vacateTime ? formatDuration(log.occupyTime, log.vacateTime) : "Still parked";
         csv += `${log.slot},${log.vehicle},"${formatTime(log.bookingTime)}","${timeToOccupy}","${parkingDuration}"\n`;
       });
