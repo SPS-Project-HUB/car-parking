@@ -22,7 +22,38 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const slots = ["slot1", "slot2", "slot3", "slot4", "slot5"];
-    const activeTimers = {};
+    const timerIntervals = {};
+
+    const updateTimerDisplay = (timerElement, startTime) => {
+      const now = Date.now();
+      const diff = Math.floor((now - startTime) / 1000);
+      const mins = Math.floor(diff / 60);
+      const secs = diff % 60;
+      timerElement.innerText = `⏱ ${mins}m ${secs}s`;
+      return diff;
+    };
+
+    const startTimer = (slotId, startTime) => {
+      // Clear any existing timer first
+      if (timerIntervals[slotId]) {
+        clearInterval(timerIntervals[slotId]);
+      }
+      
+      const timerElement = document.getElementById(slotId).querySelector(".timer");
+      // Initial update
+      updateTimerDisplay(timerElement, startTime);
+      // Set interval for continuous updates
+      timerIntervals[slotId] = setInterval(() => {
+        updateTimerDisplay(timerElement, startTime);
+      }, 1000);
+    };
+
+    const stopTimer = (slotId) => {
+      if (timerIntervals[slotId]) {
+        clearInterval(timerIntervals[slotId]);
+        delete timerIntervals[slotId];
+      }
+    };
 
     const updateUI = () => {
       slots.forEach(slot => {
@@ -34,42 +65,26 @@
           const timer = card.querySelector(".timer");
           const info = card.querySelector(".info");
           
-          // Clear previous timer if exists
-          if (activeTimers[slot]) {
-            clearInterval(activeTimers[slot]);
-            delete activeTimers[slot];
-          }
+          // Stop any running timer for this slot initially
+          stopTimer(slot);
 
           if (data && (data.status === "booked" || data.occupied)) {
+            // Slot is occupied (either booked or IR-detected)
             card.classList.remove("available");
             card.classList.add("booked");
             btn.disabled = true;
             
             if (data.status === "booked") {
               info.innerText = "Booked by: " + data.vehicle;
-              const startTime = data.startTime;
-              activeTimers[slot] = setInterval(() => {
-                const now = Date.now();
-                const diff = Math.floor((now - startTime) / 1000);
-                const mins = Math.floor(diff / 60);
-                const secs = diff % 60;
-                timer.innerText = `⏱ ${mins}m ${secs}s`;
-              }, 1000);
-            } 
-            else if (data.occupied) {
+              startTimer(slot, data.startTime);
+            } else if (data.occupied) {
               info.innerText = "Occupied (IR Sensor)";
-              const detectionTime = data.detectionTime;
-              if (detectionTime) {
-                activeTimers[slot] = setInterval(() => {
-                  const now = Date.now();
-                  const diff = Math.floor((now - detectionTime) / 1000);
-                  const mins = Math.floor(diff / 60);
-                  const secs = diff % 60;
-                  timer.innerText = `⏱ ${mins}m ${secs}s`;
-                }, 1000);
+              if (data.detectionTime) {
+                startTimer(slot, data.detectionTime);
               }
             }
           } else {
+            // Slot is available
             card.classList.remove("booked");
             card.classList.add("available");
             btn.disabled = false;
@@ -81,12 +96,12 @@
               const secs = data.lastDuration % 60;
               timer.innerText = `Last stay: ${mins}m ${secs}s`;
               
-              // Clear after 10 seconds
+              // Clear after 15 seconds
               setTimeout(() => {
                 if (!card.classList.contains("booked")) {
                   timer.innerText = "";
                 }
-              }, 10000);
+              }, 15000);
             } else {
               timer.innerText = "";
             }
@@ -107,7 +122,7 @@
         status: "booked",
         vehicle: vehicle,
         startTime: Date.now(),
-        occupied: true  // Mark as occupied when booked
+        occupied: true
       });
       vehicleInput.value = "";
     };
@@ -171,7 +186,24 @@
 
   <footer>
     <p>© 2025 SPS Project Hub | All rights reserved</p>
-    <p>IR Sensor Integration Active | Timers stop when vehicle leaves</p>
+    <p class="system-status">System Status: <span class="live-indicator">● LIVE</span> | Timers active only during occupancy</p>
   </footer>
+
+  <style>
+    .live-indicator {
+      color: #4CAF50;
+      font-weight: bold;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+    .system-status {
+      font-size: 0.9rem;
+      margin-top: 5px;
+    }
+  </style>
 </body>
 </html>
