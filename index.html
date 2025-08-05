@@ -46,7 +46,7 @@
             if (status === "booked") {
               btn.disabled = true;
               info.innerText = `Booked by: ${data.vehicle}`;
-              const bookingStart = data.bookingTime;
+              const bookingStart = data.bookingTime || Date.now(); // Fallback to current time if not set
               card.timerInterval = setInterval(() => {
                 const now = Date.now();
                 const diff = Math.floor((now - bookingStart) / 1000);
@@ -57,24 +57,19 @@
               timer2.innerText = "";
 
             } else if (status === "occupied") {
-  btn.disabled = true;
-  info.innerText = `Occupied by: ${data.vehicle || "N/A"}`;
-  
-  const occupyStart = parseInt(data.occupyTime);
-  if (!isNaN(occupyStart)) {
-    card.occupyInterval = setInterval(() => {
-      const now = Date.now();
-      const diff = Math.floor((now - occupyStart) / 1000);
-      const mins = Math.floor(diff / 60);
-      const secs = diff % 60;
-      timer2.innerText = `🅿 Occupied: ${mins}m ${secs}s`;
-    }, 1000);
-  } else {
-    timer2.innerText = "🅿 Occupied: --";
-  }
+              btn.disabled = true;
+              info.innerText = `Occupied by: ${data.vehicle}`;
+              const occupyStart = data.occupyTime || Date.now(); // Fallback to current time if not set
+              card.occupyInterval = setInterval(() => {
+                const now = Date.now();
+                const diff = Math.floor((now - occupyStart) / 1000);
+                const mins = Math.floor(diff / 60);
+                const secs = diff % 60;
+                timer2.innerText = `🅿 Occupied: ${mins}m ${secs}s`;
+              }, 1000);
+              timer.innerText = "";
 
-  timer.innerText = "";
-} else {
+            } else {
               btn.disabled = false;
               info.innerText = "Available";
               timer.innerText = "";
@@ -153,7 +148,8 @@
       set(ref(db, "slots/" + slot), {
         status: "booked",
         vehicle: vehicle,
-        bookingTime: Date.now()
+        bookingTime: Date.now(),
+        occupyTime: null // Initialize occupyTime as null
       });
       input.value = "";
     };
