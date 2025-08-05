@@ -1,5 +1,5 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCSNW4PZkfse5G-s4j9HxtJqkYxuTUFQAo",
@@ -14,53 +14,70 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const slots = ["slot1", "slot2", "slot3", "slot4", "slot5"];
-const slotContainer = document.getElementById("slotContainer");
+const timers = {};
 
-function renderSlots(data) {
-  slotContainer.innerHTML = "";
-  slots.forEach(slot => {
-    const status = data[slot]?.status || "free";
-    const vehicle = data[slot]?.vehicle || "-";
-    const time = data[slot]?.time || "00:00:00";
+function startLiveTimer(slotId, startTime) {
+  if (timers[slotId]) return;
 
-    const div = document.createElement("div");
-    div.className = `slot ${status}`;
-    div.innerHTML = `
-      <div>${slot.toUpperCase()}</div>
-      <div>Status: ${status}</div>
-      <div>Vehicle: ${vehicle}</div>
-      <div>Time: ${time}</div>
-    `;
-    slotContainer.appendChild(div);
-  });
+  const timeParts = startTime.split(":");
+  let start = new Date();
+  start.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), parseInt(timeParts[2]));
+
+  timers[slotId] = setInterval(() => {
+    const now = new Date();
+    const diff = Math.floor((now - start) / 1000);
+    const h = Math.floor(diff / 3600);
+    const m = Math.floor((diff % 3600) / 60);
+    const s = diff % 60;
+    const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    document.getElementById(slotId).querySelector(".timer").innerText = `Time: ${timeStr}`;
+  }, 1000);
 }
 
-function listenToSlots() {
-  const slotRef = ref(db, "slots/");
-  onValue(slotRef, snapshot => {
-    const data = snapshot.val();
-    if (data) {
-      renderSlots(data);
-    }
-  });
+function stopLiveTimer(slotId) {
+  if (timers[slotId]) {
+    clearInterval(timers[slotId]);
+    delete timers[slotId];
+  }
+  document.getElementById(slotId).querySelector(".timer").innerText = "Time: 00:00:00";
 }
 
-window.bookSlot = function() {
-  const vehicleNumber = document.getElementById("vehicleNumber").value.trim();
-  const selectedSlot = document.getElementById("slotSelect").value;
+function updateSlotUI(slotId, data) {
+  const slotEl = document.getElementById(slotId);
+  const status = data.status;
+  const startTime = data.startTime || "N/A";
 
-  if (!vehicleNumber) {
-    alert("Please enter your vehicle number!");
-    return;
+  let statusText = "";
+  let color = "";
+
+  if (status === "free") {
+    statusText = "Available";
+    color = "#4CAF50";
+  } else if (status === "booked") {
+    statusText = "Booked";
+    color = "#FF9800";
+  } else if (status === "occupied") {
+    statusText = "Occupied";
+    color = "#F44336";
   }
 
-  const slotRef = ref(db, `slots/${selectedSlot}`);
-  set(slotRef, {
-    status: "booked",
-    vehicle: vehicleNumber,
-    time: "00:00:00"
-  });
+  slotEl.querySelector(".status").innerText = `Status: ${statusText}`;
+  slotEl.querySelector(".status").style.color = color;
+
+  if (status === "occupied") {
+    startLiveTimer(slotId, startTime);
+  } else {
+    stopLiveTimer(slotId);
+  }
 }
 
-listenToSlots();
+const slots = ["slot1", "slot2", "slot3", "slot4", "slot5"];
+slots.forEach(slot => {
+  const slotRef = ref(db, "/" + slot);
+  onValue(slotRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      updateSlotUI(slot, data);
+    }
+  });
+});
