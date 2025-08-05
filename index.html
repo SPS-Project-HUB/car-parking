@@ -1,150 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dual-Timer Parking System</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Parking System</title>
+  <link rel="stylesheet" href="style.css">
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyCSNW4PZkfse5G-s4j9HxtJqkYxuTUFQAo",
-      authDomain: "carparkingsystem-e96a9.firebaseapp.com",
-      databaseURL: "https://carparkingsystem-e96a9-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "carparkingsystem-e96a9",
-      storageBucket: "carparkingsystem-e96a9.appspot.com",
-      messagingSenderId: "1074868104297",
-      appId: "1:1074868104297:web:a00c054483ff39f36506f8"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      databaseURL: "YOUR_DATABASE_URL",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const slots = ["slot1", "slot2", "slot3", "slot4", "slot5"];
-    const timers = {};
 
-    const formatTime = (seconds) => {
+    function formatDuration(seconds) {
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;
       return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    };
+    }
 
-    const updateSlot = (slot) => {
-      const slotRef = ref(db, "slots/" + slot);
-      onValue(slotRef, (snapshot) => {
-        const data = snapshot.val();
-        const card = document.getElementById(slot);
-        if (!card) return;
+    function updateSlotUI(slotId, data) {
+      const card = document.getElementById(slotId);
+      if (!card) return;
 
-        const elements = {
-          btn: card.querySelector("button"),
-          bookingTimer: card.querySelector(".booking-timer"),
-          occupancyTimer: card.querySelector(".occupancy-timer"),
-          info: card.querySelector(".info"),
-          status: card.querySelector(".status")
-        };
-
-        // Clear existing timers
-        if (timers[slot]) {
-          clearInterval(timers[slot].booking);
-          clearInterval(timers[slot].occupancy);
-        }
-
-        // Initialize timer object
-        timers[slot] = { booking: null, occupancy: null };
-
-        if (data) {
-          // Booking Timer
-          if (data.status === "booked") {
-            const startTime = data.startTime || Date.now();
-            timers[slot].booking = setInterval(() => {
-              const seconds = Math.floor((Date.now() - startTime) / 1000);
-              elements.bookingTimer.textContent = `Booking: ${formatTime(seconds)}`;
-            }, 1000);
-          }
-
-          // Occupancy Timer (only when IR detects)
-          if (data.occupied && data.detectionTime) {
-            const detectionTime = data.detectionTime;
-            timers[slot].occupancy = setInterval(() => {
-              const seconds = Math.floor((Date.now() - detectionTime) / 1000);
-              elements.occupancyTimer.textContent = `Occupancy: ${formatTime(seconds)}`;
-            }, 1000);
-          }
-
-          // Update UI State
-          const isOccupied = data.occupied || data.status === "booked";
-          card.className = `slot-card ${isOccupied ? "booked" : "available"}`;
-          elements.btn.disabled = isOccupied;
-          elements.info.textContent = isOccupied ? 
-            (data.status === "booked" ? `Booked: ${data.vehicle}` : "Occupied (IR)") : 
-            "Available";
-          elements.status.textContent = isOccupied ? "🟢 Active" : "🔴 Inactive";
-
-          // Show durations when available
-          if (!data.occupied) {
-            if (data.lastOccupancy) {
-              elements.occupancyTimer.textContent = `Last Stay: ${formatTime(data.lastOccupancy)}`;
-            }
-            if (data.bookingDuration) {
-              elements.bookingTimer.textContent = `Booked For: ${formatTime(data.bookingDuration)}`;
-            }
-          }
-        }
-      });
-    };
-
-    const bookSlot = (slot) => {
-      const vehicleInput = document.getElementById(`${slot}-vehicle`);
-      const vehicle = vehicleInput.value.trim();
-      if (!vehicle) {
-        alert("Please enter vehicle number!");
-        return;
+      const isOccupied = data.occupied || data.status === "booked";
+      card.className = `slot-card ${isOccupied ? "occupied" : "available"}`;
+      
+      card.querySelector(".status").textContent = isOccupied ? 
+        (data.status === "booked" ? `Booked: ${data.vehicle}` : "Occupied") : 
+        "Available";
+      
+      // Update timers
+      if (data.occupied && data.detectionTime) {
+        const duration = Math.floor((Date.now() - data.detectionTime) / 1000);
+        card.querySelector(".occupancy-timer").textContent = `Occupied: ${formatDuration(duration)}`;
+      } else if (data.lastDuration) {
+        card.querySelector(".occupancy-timer").textContent = `Last: ${formatDuration(data.lastDuration)}`;
+      } else {
+        card.querySelector(".occupancy-timer").textContent = "";
       }
-      const slotRef = ref(db, "slots/" + slot);
-      set(slotRef, {
-        status: "booked",
-        vehicle: vehicle,
-        startTime: Date.now(),
-        occupied: false,
-        detectionTime: null
-      });
-      vehicleInput.value = "";
-      console.log(`Booked ${slot} for ${vehicle}`);
-    };
+    }
 
-    // Initialize all slots
-    window.onload = () => {
-      slots.forEach(slot => updateSlot(slot));
-      console.log("System initialized. Monitoring slots...");
-    };
-    window.bookSlot = bookSlot;
+    function initSlots() {
+      for (let i = 1; i <= 5; i++) {
+        const slotRef = ref(db, `slots/slot${i}`);
+        onValue(slotRef, (snapshot) => {
+          updateSlotUI(`slot${i}`, snapshot.val() || {});
+        });
+      }
+    }
+
+    window.onload = initSlots;
   </script>
 </head>
 <body>
   <header>
-    <h1>🚗 Dual-Timer Parking System</h1>
-    <p>Booking Time + Physical Occupancy Time Tracking</p>
+    <h1>Smart Parking System</h1>
+    <p>Real-time monitoring with ESP32</p>
   </header>
 
-  <main class="parking-container">
-    <!-- Slot 1 -->
-    <div id="slot1" class="slot-card available">
-      <h2>Slot 1 <span class="status">🔴 Inactive</span></h2>
-      <p class="info">Available</p>
-      <input type="text" id="slot1-vehicle" placeholder="Enter Vehicle No" />
-      <button onclick="bookSlot('slot1')">Book Now</button>
-      <p class="booking-timer"></p>
-      <p class="occupancy-timer"></p>
-    </div>
-    
-    <!-- Additional slots (slot2 to slot5) would follow same pattern -->
+  <main class="parking-grid">
+    <!-- Generate slots 1 through 5 -->
+    <template id="slot-template">
+      <div class="slot-card" id="slotX">
+        <h2>Slot X</h2>
+        <p class="status">Available</p>
+        <p class="occupancy-timer"></p>
+      </div>
+    </template>
   </main>
 
   <footer>
-    <p>© 2025 Parking System | Dual-Timer Technology</p>
-    <p class="live-status">Live Status: <span id="system-status">🟢 Operational</span></p>
+    <p>© 2024 Smart Parking System</p>
+    <p class="connection-status">Status: <span id="status-indicator">Connecting...</span></p>
   </footer>
+
+  <script>
+    // Generate slots dynamically
+    const template = document.getElementById('slot-template');
+    const grid = document.querySelector('.parking-grid');
+    
+    for (let i = 1; i <= 5; i++) {
+      const slot = template.content.cloneNode(true);
+      slot.querySelector('.slot-card').id = `slot${i}`;
+      slot.querySelector('h2').textContent = `Slot ${i}`;
+      grid.appendChild(slot);
+    }
+  </script>
 </body>
 </html>
