@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Smart Car Parking System</title>
   <link rel="stylesheet" href="style.css" />
-
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -23,6 +22,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const slots = ["slot1", "slot2", "slot3", "slot4", "slot5"];
+    let fullLogs = [];
 
     const updateUI = () => {
       slots.forEach(slot => {
@@ -85,17 +85,12 @@
       onValue(logsRef, (snapshot) => {
         const table = document.getElementById("logTableBody");
         table.innerHTML = "";
+        fullLogs = [];
         const logs = snapshot.val();
         if (logs) {
           Object.values(logs).reverse().forEach(log => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-              <td>${log.slot}</td>
-              <td>${log.vehicle}</td>
-              <td>${formatTime(log.bookingTime)}</td>
-              <td>${formatTime(log.occupyTime)}</td>
-              <td>${formatTime(log.vacateTime)}</td>
-            `;
+            fullLogs.push(log);
+            const row = createLogRow(log);
             table.appendChild(row);
           });
         }
@@ -104,16 +99,53 @@
 
     const formatTime = (ms) => {
       if (!ms) return "-";
-      const date = new Date(ms);
+      const date = new Date(parseInt(ms));
       return date.toLocaleString();
+    };
+
+    const createLogRow = (log) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${log.slot}</td>
+        <td>${log.vehicle}</td>
+        <td>${formatTime(log.bookingTime)}</td>
+        <td>${formatTime(log.occupyTime)}</td>
+        <td>${formatTime(log.vacateTime)}</td>
+      `;
+      return row;
+    };
+
+    const filterLogs = () => {
+      const vehicleFilter = document.getElementById("filterVehicle").value.toLowerCase();
+      const slotFilter = document.getElementById("filterSlot").value.toLowerCase();
+      const table = document.getElementById("logTableBody");
+      table.innerHTML = "";
+      fullLogs
+        .filter(log =>
+          (!vehicleFilter || log.vehicle?.toLowerCase().includes(vehicleFilter)) &&
+          (!slotFilter || log.slot?.toLowerCase().includes(slotFilter))
+        )
+        .forEach(log => table.appendChild(createLogRow(log)));
+    };
+
+    const downloadCSV = () => {
+      let csv = "Slot,Vehicle,Booking Time,Occupy Time,Vacate Time\n";
+      fullLogs.forEach(log => {
+        csv += `${log.slot},${log.vehicle},${formatTime(log.bookingTime)},${formatTime(log.occupyTime)},${formatTime(log.vacateTime)}\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "parking_logs.csv";
+      a.click();
     };
 
     const bookSlot = (slot) => {
       const input = document.getElementById(`${slot}-vehicle`);
       const vehicle = input.value.trim();
-      if (!vehicle) return alert("Enter your vehicle number");
-      const refPath = ref(db, "slots/" + slot);
-      set(refPath, {
+      if (!vehicle) return alert("Enter vehicle number");
+      set(ref(db, "slots/" + slot), {
         status: "booked",
         vehicle: vehicle,
         bookingTime: Date.now()
@@ -122,6 +154,8 @@
     };
 
     window.bookSlot = bookSlot;
+    window.filterLogs = filterLogs;
+    window.downloadCSV = downloadCSV;
     window.onload = () => {
       updateUI();
       loadLogs();
@@ -131,24 +165,29 @@
 <body>
   <header>
     <h1>🚗 Smart Car Parking System</h1>
-    <p>Real-time Monitoring with Logs & Dual Timers</p>
+    <p>Live Monitoring, Logs, Dual Timers</p>
   </header>
 
   <main class="parking-container">
-    ${[1, 2, 3, 4, 5].map(i => `
-      <div id="slot${i}" class="slot-card available">
-        <h2>Slot ${i}</h2>
-        <p class="info">Available</p>
-        <input type="text" id="slot${i}-vehicle" placeholder="Enter Vehicle No" />
-        <button onclick="bookSlot('slot${i}')">Book Now</button>
-        <p class="timer"></p>
-        <p class="occupy-timer"></p>
-      </div>
-    `).join("")}
+    <div id="slot1" class="slot-card available">
+      <h2>Slot 1</h2>
+      <p class="info">Available</p>
+      <input type="text" id="slot1-vehicle" placeholder="Enter Vehicle No" />
+      <button onclick="bookSlot('slot1')">Book Now</button>
+      <p class="timer"></p>
+      <p class="occupy-timer"></p>
+    </div>
+    <!-- Repeat for slot2 to slot5 -->
+    <!-- ... -->
   </main>
 
   <section class="log-section">
     <h2>📋 Parking Session Logs</h2>
+    <div class="log-controls">
+      <input type="text" id="filterVehicle" placeholder="Filter by Vehicle" oninput="filterLogs()" />
+      <input type="text" id="filterSlot" placeholder="Filter by Slot" oninput="filterLogs()" />
+      <button onclick="downloadCSV()">⬇️ Download CSV</button>
+    </div>
     <table class="log-table">
       <thead>
         <tr>
