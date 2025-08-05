@@ -39,32 +39,17 @@
       padding: 1.5rem 0;
       text-align: center;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      position: relative;
-      overflow: hidden;
-    }
-
-    header::before {
-      content: "";
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
-      transform: rotate(30deg);
     }
 
     header h1 {
       font-size: 2.2rem;
       font-weight: 700;
       margin-bottom: 0.5rem;
-      position: relative;
     }
 
     header p {
       font-size: 1rem;
       opacity: 0.9;
-      position: relative;
     }
 
     .parking-container {
@@ -81,28 +66,18 @@
       border-radius: 12px;
       padding: 1.5rem;
       box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      display: flex;
-      flex-direction: column;
+      transition: transform 0.3s ease;
       border-top: 4px solid var(--primary);
     }
 
     .slot-card:hover {
       transform: translateY(-5px);
-      box-shadow: 0 12px 20px rgba(0, 0, 0, 0.12);
     }
 
     .slot-card h2 {
       font-size: 1.4rem;
       color: var(--primary);
       margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .slot-card h2 i {
-      font-size: 1.2rem;
     }
 
     .slot-card .info {
@@ -119,13 +94,7 @@
       border-radius: 8px;
       margin: 0.5rem 0;
       font-size: 0.9rem;
-      transition: border 0.3s ease;
-    }
-
-    .slot-card input:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+      width: 100%;
     }
 
     .slot-card button {
@@ -136,31 +105,23 @@
       color: white;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.3s ease;
       margin-top: 0.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
+      width: 100%;
+      transition: background-color 0.3s ease;
     }
 
     .slot-card button:hover {
       background-color: var(--secondary);
-      transform: translateY(-2px);
     }
 
     .slot-card button:disabled {
       background-color: var(--gray);
       cursor: not-allowed;
-      transform: none;
     }
 
     .slot-card .timer, .slot-card .occupy-timer {
       font-size: 0.85rem;
       margin-top: 0.5rem;
-      padding: 0.3rem 0.5rem;
-      border-radius: 4px;
-      background-color: rgba(0, 0, 0, 0.05);
     }
 
     /* Status Colors */
@@ -204,9 +165,6 @@
       font-size: 1.6rem;
       color: var(--primary);
       margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
     }
 
     .log-controls {
@@ -223,13 +181,6 @@
       border: 1px solid #e0e0e0;
       border-radius: 8px;
       font-size: 0.9rem;
-      transition: all 0.3s ease;
-    }
-
-    .log-controls input:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
     }
 
     .log-controls button {
@@ -240,24 +191,12 @@
       border-radius: 8px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .log-controls button:hover {
-      background-color: var(--secondary);
-      transform: translateY(-2px);
     }
 
     .log-table {
       width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
+      border-collapse: collapse;
       background: var(--white);
-      border-radius: 10px;
-      overflow: hidden;
     }
 
     .log-table th {
@@ -265,7 +204,6 @@
       color: white;
       padding: 1rem;
       text-align: left;
-      font-weight: 500;
     }
 
     .log-table td {
@@ -273,49 +211,11 @@
       border-bottom: 1px solid #f0f0f0;
     }
 
-    .log-table tr:last-child td {
-      border-bottom: none;
-    }
-
-    .log-table tr:hover td {
-      background-color: rgba(67, 97, 238, 0.05);
-    }
-
-    .log-table tr:nth-child(even) {
-      background-color: #f9f9f9;
-    }
-
     footer {
       text-align: center;
       padding: 1.5rem;
       background-color: var(--dark);
       color: var(--white);
-      margin-top: 2rem;
-    }
-
-    @media (max-width: 768px) {
-      .parking-container {
-        grid-template-columns: 1fr;
-        padding: 1rem;
-      }
-      
-      .log-section {
-        padding: 1.5rem;
-        margin: 1rem;
-      }
-      
-      .log-controls {
-        flex-direction: column;
-      }
-      
-      .log-controls input, .log-controls button {
-        width: 100%;
-      }
-      
-      .log-table {
-        display: block;
-        overflow-x: auto;
-      }
     }
   </style>
 </head>
@@ -394,7 +294,6 @@
   </footer>
 
   <script type="module">
-    // Your existing JavaScript code remains unchanged
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -413,6 +312,24 @@
     const slots = ["slot1", "slot2", "slot3", "slot4", "slot5"];
     let fullLogs = [];
     let occupationStartTimes = {};
+
+    // Improved date formatting with validation
+    const formatTime = (ms) => {
+      // Check for invalid timestamp values
+      if (!ms || isNaN(ms) || parseInt(ms) <= 0) {
+        return "-";
+      }
+      
+      const timestamp = parseInt(ms);
+      const date = new Date(timestamp);
+      
+      // Additional validation for date object
+      if (isNaN(date.getTime())) {
+        return "-";
+      }
+      
+      return date.toLocaleString();
+    };
 
     const updateUI = () => {
       slots.forEach(slot => {
@@ -451,7 +368,7 @@
               info.innerText = `Occupied by: ${data.vehicle}`;
               
               if (!occupationStartTimes[slot] || card.previousStatus !== "occupied") {
-                occupationStartTimes[slot] = Date.now();
+                occupationStartTimes[slot] = data.occupyTime || Date.now();
               }
               
               card.occupyInterval = setInterval(() => {
@@ -486,6 +403,11 @@
         const logs = snapshot.val();
         if (logs) {
           Object.values(logs).reverse().forEach(log => {
+            // Ensure all timestamps are numbers
+            log.bookingTime = log.bookingTime ? parseInt(log.bookingTime) : null;
+            log.occupyTime = log.occupyTime ? parseInt(log.occupyTime) : null;
+            log.vacateTime = log.vacateTime ? parseInt(log.vacateTime) : null;
+            
             fullLogs.push(log);
             const row = createLogRow(log);
             table.appendChild(row);
@@ -494,17 +416,11 @@
       });
     };
 
-    const formatTime = (ms) => {
-      if (!ms) return "-";
-      const date = new Date(parseInt(ms));
-      return date.toLocaleString();
-    };
-
     const createLogRow = (log) => {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td>${log.slot}</td>
-        <td>${log.vehicle}</td>
+        <td>${log.vehicle || '-'}</td>
         <td>${formatTime(log.bookingTime)}</td>
         <td>${formatTime(log.occupyTime)}</td>
         <td>${formatTime(log.vacateTime)}</td>
@@ -519,8 +435,8 @@
       table.innerHTML = "";
       fullLogs
         .filter(log =>
-          (!vehicleFilter || log.vehicle?.toLowerCase().includes(vehicleFilter)) &&
-          (!slotFilter || log.slot?.toLowerCase().includes(slotFilter))
+          (!vehicleFilter || (log.vehicle && log.vehicle.toLowerCase().includes(vehicleFilter))) &&
+          (!slotFilter || (log.slot && log.slot.toLowerCase().includes(slotFilter)))
         )
         .forEach(log => table.appendChild(createLogRow(log)));
     };
@@ -528,13 +444,13 @@
     const downloadCSV = () => {
       let csv = "Slot,Vehicle,Booking Time,Occupy Time,Vacate Time\n";
       fullLogs.forEach(log => {
-        csv += `${log.slot},${log.vehicle},${formatTime(log.bookingTime)},${formatTime(log.occupyTime)},${formatTime(log.vacateTime)}\n`;
+        csv += `${log.slot},${log.vehicle || ''},${formatTime(log.bookingTime)},${formatTime(log.occupyTime)},${formatTime(log.vacateTime)}\n`;
       });
       const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "parking_logs.csv";
+      a.download = "parking_logs_" + new Date().toISOString().slice(0,10) + ".csv";
       a.click();
     };
 
@@ -542,18 +458,34 @@
       const input = document.getElementById(`${slot}-vehicle`);
       const vehicle = input.value.trim();
       if (!vehicle) return alert("Please enter vehicle number");
+      
+      const bookingTime = Date.now();
+      
+      // Update slot status
       set(ref(db, "slots/" + slot), {
         status: "booked",
         vehicle: vehicle,
-        bookingTime: Date.now(),
+        bookingTime: bookingTime,
         occupyTime: null
       });
+      
+      // Create log entry
+      const logId = `${slot}_${bookingTime}`;
+      set(ref(db, `parkingLogs/${logId}`), {
+        slot: slot,
+        vehicle: vehicle,
+        bookingTime: bookingTime,
+        occupyTime: null,
+        vacateTime: null
+      });
+      
       input.value = "";
     };
 
     window.bookSlot = bookSlot;
     window.filterLogs = filterLogs;
     window.downloadCSV = downloadCSV;
+    
     window.onload = () => {
       updateUI();
       loadLogs();
