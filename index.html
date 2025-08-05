@@ -1,28 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Smart Car Parking</title>
-  <link rel="stylesheet" href="style.css" />
-  <script type="module" src="script.js" defer></script>
+  <meta charset="UTF-8">
+  <title>Smart Car Parking System</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="script.js"></script>
 </head>
 <body>
-  <h1>🚗 Smart Car Parking System</h1>
-  <div class="container">
-    <div class="booking-panel">
-      <input type="text" id="vehicleNumber" placeholder="Enter Vehicle Number"/>
-      <select id="slotSelect">
-        <option value="slot1">Slot 1</option>
-        <option value="slot2">Slot 2</option>
-        <option value="slot3">Slot 3</option>
-        <option value="slot4">Slot 4</option>
-        <option value="slot5">Slot 5</option>
-      </select>
-      <button onclick="bookSlot()">Book Slot</button>
+  <h1>Smart Car Parking System</h1>
+  <div class="slot-container">
+    <div class="slot" id="slot1">
+      <h3>Slot 1</h3>
+      <p class="status">Status: Loading...</p>
+      <p class="timer">Time: 00:00:00</p>
     </div>
-
-    <div class="slots" id="slotContainer"></div>
+    <div class="slot" id="slot2">
+      <h3>Slot 2</h3>
+      <p class="status">Status: Loading...</p>
+      <p class="timer">Time: 00:00:00</p>
+    </div>
+    <div class="slot" id="slot3">
+      <h3>Slot 3</h3>
+      <p class="status">Status: Loading...</p>
+      <p class="timer">Time: 00:00:00</p>
+    </div>
+    <div class="slot" id="slot4">
+      <h3>Slot 4</h3>
+      <p class="status">Status: Loading...</p>
+      <p class="timer">Time: 00:00:00</p>
+    </div>
+    <div class="slot" id="slot5">
+      <h3>Slot 5</h3>
+      <p class="status">Status: Loading...</p>
+      <p class="timer">Time: 00:00:00</p>
+    </div>
   </div>
 </body>
 </html>
