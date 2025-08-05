@@ -9,6 +9,36 @@
   margin-bottom: 15px;
 }
 
+.log-controls {
+  margin-bottom: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.log-controls input {
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  flex: 1;
+  min-width: 160px;
+}
+
+.log-controls button {
+  padding: 8px 12px;
+  font-size: 14px;
+  background-color: #005cbf;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.log-controls button:hover {
+  background-color: #004199;
+}
+
 .log-table {
   width: 100%;
   border-collapse: collapse;
