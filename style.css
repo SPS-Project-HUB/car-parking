@@ -77,8 +77,18 @@ header p {
 }
 
 .slot-card.booked {
+  border-left-color: orange;
+  background: #fffbe6;
+}
+
+.slot-card.occupied {
   border-left-color: red;
-  background: #fff2f2;
+  background: #ffe6e6;
+}
+
+.slot-card.available {
+  border-left-color: green;
+  background: #e6fff2;
 }
 
 footer {
@@ -87,4 +97,10 @@ footer {
   text-align: center;
   padding: 20px;
   margin-top: 50px;
+}
+
+.timer,
+.occupy-timer {
+  font-size: 14px;
+  color: #444;
 }
