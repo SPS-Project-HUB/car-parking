@@ -46,27 +46,35 @@
             if (status === "booked") {
               btn.disabled = true;
               info.innerText = `Booked by: ${data.vehicle}`;
-              const bookingStart = data.bookingTime;
-              card.timerInterval = setInterval(() => {
-                const now = Date.now();
-                const diff = Math.floor((now - bookingStart) / 1000);
-                const mins = Math.floor(diff / 60);
-                const secs = diff % 60;
-                timer.innerText = `⏱ Pre-Booking: ${mins}m ${secs}s`;
-              }, 1000);
+              const bookingStart = parseInt(data.bookingTime);
+              if (!isNaN(bookingStart)) {
+                card.timerInterval = setInterval(() => {
+                  const now = Date.now();
+                  const diff = Math.floor((now - bookingStart) / 1000);
+                  const mins = Math.floor(diff / 60);
+                  const secs = diff % 60;
+                  timer.innerText = `⏱ Pre-Booking: ${mins}m ${secs}s`;
+                }, 1000);
+              } else {
+                timer.innerText = "⏱ Pre-Booking: --";
+              }
               timer2.innerText = "";
 
             } else if (status === "occupied") {
               btn.disabled = true;
               info.innerText = `Occupied by: ${data.vehicle}`;
-              const occupyStart = data.occupyTime;
-              card.occupyInterval = setInterval(() => {
-                const now = Date.now();
-                const diff = Math.floor((now - occupyStart) / 1000);
-                const mins = Math.floor(diff / 60);
-                const secs = diff % 60;
-                timer2.innerText = `🅿 Occupied: ${mins}m ${secs}s`;
-              }, 1000);
+              const occupyStart = parseInt(data.occupyTime);
+              if (!isNaN(occupyStart) && occupyStart > 1000000000000) {
+                card.occupyInterval = setInterval(() => {
+                  const now = Date.now();
+                  const diff = Math.floor((now - occupyStart) / 1000);
+                  const mins = Math.floor(diff / 60);
+                  const secs = diff % 60;
+                  timer2.innerText = `🅿 Occupied: ${mins}m ${secs}s`;
+                }, 1000);
+              } else {
+                timer2.innerText = "🅿 Occupied: --";
+              }
               timer.innerText = "";
 
             } else {
@@ -168,48 +176,18 @@
     <p>Live Monitoring, Logs, Dual Timers</p>
   </header>
 
- <main class="parking-container">
-  <div id="slot1" class="slot-card available">
-    <h2>Slot 1</h2>
-    <p class="info">Available</p>
-    <input type="text" id="slot1-vehicle" placeholder="Enter Vehicle No" />
-    <button onclick="bookSlot('slot1')">Book Now</button>
-    <p class="timer"></p>
-    <p class="occupy-timer"></p>
-  </div>
-  <div id="slot2" class="slot-card available">
-    <h2>Slot 2</h2>
-    <p class="info">Available</p>
-    <input type="text" id="slot2-vehicle" placeholder="Enter Vehicle No" />
-    <button onclick="bookSlot('slot2')">Book Now</button>
-    <p class="timer"></p>
-    <p class="occupy-timer"></p>
-  </div>
-  <div id="slot3" class="slot-card available">
-    <h2>Slot 3</h2>
-    <p class="info">Available</p>
-    <input type="text" id="slot3-vehicle" placeholder="Enter Vehicle No" />
-    <button onclick="bookSlot('slot3')">Book Now</button>
-    <p class="timer"></p>
-    <p class="occupy-timer"></p>
-  </div>
-  <div id="slot4" class="slot-card available">
-    <h2>Slot 4</h2>
-    <p class="info">Available</p>
-    <input type="text" id="slot4-vehicle" placeholder="Enter Vehicle No" />
-    <button onclick="bookSlot('slot4')">Book Now</button>
-    <p class="timer"></p>
-    <p class="occupy-timer"></p>
-  </div>
-  <div id="slot5" class="slot-card available">
-    <h2>Slot 5</h2>
-    <p class="info">Available</p>
-    <input type="text" id="slot5-vehicle" placeholder="Enter Vehicle No" />
-    <button onclick="bookSlot('slot5')">Book Now</button>
-    <p class="timer"></p>
-    <p class="occupy-timer"></p>
-  </div>
-</main>
+  <main class="parking-container">
+    ${["slot1", "slot2", "slot3", "slot4", "slot5"].map(slot => `
+      <div id="${slot}" class="slot-card available">
+        <h2>${slot.replace("slot", "Slot ")}</h2>
+        <p class="info">Available</p>
+        <input type="text" id="${slot}-vehicle" placeholder="Enter Vehicle No" />
+        <button onclick="bookSlot('${slot}')">Book Now</button>
+        <p class="timer"></p>
+        <p class="occupy-timer"></p>
+      </div>
+    `).join("")}
+  </main>
 
   <section class="log-section">
     <h2>📋 Parking Session Logs</h2>
