@@ -1,15 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Smart Car Parking</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Firebase -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Car Parking System</title>
+  <link rel="stylesheet" href="style.css" />
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCSNW4PZkfse5G-s4j9HxtJqkYxuTUFQAo",
@@ -23,85 +21,112 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    const slots = ["slot1", "slot2", "slot3", "slot4", "slot5"];
 
-    function startTimer(slotId, startTime) {
-      const timerEl = document.getElementById(`timer-${slotId}`);
-      function updateTimer() {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        const mins = Math.floor(elapsed / 60);
-        const secs = elapsed % 60;
-        timerEl.textContent = `${mins}m ${secs}s`;
-      }
-      updateTimer();
-      setInterval(updateTimer, 1000);
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      const slots = ['slot1', 'slot2', 'slot3', 'slot4', 'slot5'];
-      slots.forEach(slotId => {
-        const statusRef = ref(db, `slots/${slotId}`);
-        onValue(statusRef, snapshot => {
+    const updateUI = () => {
+      slots.forEach(slot => {
+        const slotRef = ref(db, "slots/" + slot);
+        onValue(slotRef, (snapshot) => {
           const data = snapshot.val();
-          const card = document.getElementById(slotId);
-          const bookBtn = document.getElementById(`book-${slotId}`);
-          const input = document.getElementById(`vehicle-${slotId}`);
-          const timer = document.getElementById(`timer-${slotId}`);
-          if (data) {
-            card.className = data.status === "booked" ? "bg-yellow-300" : data.status === "occupied" ? "bg-red-400" : "bg-green-300";
-            if (data.status === "booked" && data.startTime) {
-              startTimer(slotId, data.startTime);
-            }
-            if (data.vehicle) {
-              input.value = data.vehicle;
-              input.disabled = true;
-            }
-            bookBtn.disabled = data.status !== "available";
+          const card = document.getElementById(slot);
+          const btn = card.querySelector("button");
+          const timer = card.querySelector(".timer");
+          const info = card.querySelector(".info");
+          if (data && data.status === "booked") {
+            card.classList.remove("available");
+            card.classList.add("booked");
+            btn.disabled = true;
+            info.innerText = "Booked by: " + data.vehicle;
+            const start = data.startTime;
+            setInterval(() => {
+              const now = Date.now();
+              const diff = Math.floor((now - start) / 1000);
+              const mins = Math.floor(diff / 60);
+              const secs = diff % 60;
+              timer.innerText = `⏱ ${mins}m ${secs}s`;
+            }, 1000);
           } else {
-            card.className = "bg-green-300";
-            input.value = "";
-            input.disabled = false;
-            bookBtn.disabled = false;
+            card.classList.remove("booked");
+            card.classList.add("available");
+            btn.disabled = false;
+            info.innerText = "Available";
+            timer.innerText = "";
           }
         });
       });
-    });
+    };
 
-    window.bookSlot = function (slotId) {
-      const vehicle = document.getElementById(`vehicle-${slotId}`).value.trim();
-      if (!vehicle) {
-        alert("Please enter your vehicle number.");
+    const bookSlot = (slot) => {
+      const vehicleInput = document.getElementById(`${slot}-vehicle`);
+      const vehicle = vehicleInput.value.trim();
+      if (vehicle === "") {
+        alert("Please enter your vehicle number!");
         return;
       }
-      const slotRef = ref(db, `slots/${slotId}`);
+      const slotRef = ref(db, "slots/" + slot);
       set(slotRef, {
         status: "booked",
         vehicle: vehicle,
         startTime: Date.now()
       });
-    }
+      vehicleInput.value = "";
+    };
+
+    window.bookSlot = bookSlot;
+    window.onload = updateUI;
   </script>
 </head>
+<body>
+  <header>
+    <h1>🚗 Smart Car Parking System</h1>
+    <p>Real-time Slot Monitoring & Pre-Booking</p>
+  </header>
 
-<body class="bg-gradient-to-r from-blue-100 to-purple-200 min-h-screen p-6 font-sans">
-  <h1 class="text-4xl font-bold text-center mb-8 text-gray-800 drop-shadow">🚘 Smart Car Parking System</h1>
+  <main class="parking-container">
+    <!-- Loop for 5 slots -->
+    <div id="slot1" class="slot-card available">
+      <h2>Slot 1</h2>
+      <p class="info">Available</p>
+      <input type="text" id="slot1-vehicle" placeholder="Enter Vehicle No" />
+      <button onclick="bookSlot('slot1')">Book Now</button>
+      <p class="timer"></p>
+    </div>
 
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-    <!-- Slot Card Template -->
-    <!-- Repeat this block for 5 slots -->
-    ${[1, 2, 3, 4, 5].map(i => `
-      <div id="slot${i}" class="rounded-xl p-6 shadow-xl bg-green-300 transition-all duration-300">
-        <h2 class="text-xl font-semibold text-gray-800 mb-2">Slot ${i}</h2>
-        <input id="vehicle-slot${i}" type="text" placeholder="Enter vehicle number"
-               class="w-full px-3 py-2 rounded-md border border-gray-400 mb-3 text-black focus:ring focus:ring-indigo-200">
-        <button id="book-slot${i}" onclick="bookSlot('slot${i}')"
-                class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-800 transition">Pre-Book</button>
-        <p class="mt-4 text-sm text-gray-700">⏱ <span id="timer-slot${i}">Not started</span></p>
-      </div>
-    `).join('')}
-  </div>
+    <div id="slot2" class="slot-card available">
+      <h2>Slot 2</h2>
+      <p class="info">Available</p>
+      <input type="text" id="slot2-vehicle" placeholder="Enter Vehicle No" />
+      <button onclick="bookSlot('slot2')">Book Now</button>
+      <p class="timer"></p>
+    </div>
 
-  <footer class="mt-12 text-center text-gray-500 text-sm">
-    Developed by <a href="https://github.com/sps-project-hub" class="text-blue-600 hover:underline">SPS Project Hub</a> 🚀
+    <div id="slot3" class="slot-card available">
+      <h2>Slot 3</h2>
+      <p class="info">Available</p>
+      <input type="text" id="slot3-vehicle" placeholder="Enter Vehicle No" />
+      <button onclick="bookSlot('slot3')">Book Now</button>
+      <p class="timer"></p>
+    </div>
+
+    <div id="slot4" class="slot-card available">
+      <h2>Slot 4</h2>
+      <p class="info">Available</p>
+      <input type="text" id="slot4-vehicle" placeholder="Enter Vehicle No" />
+      <button onclick="bookSlot('slot4')">Book Now</button>
+      <p class="timer"></p>
+    </div>
+
+    <div id="slot5" class="slot-card available">
+      <h2>Slot 5</h2>
+      <p class="info">Available</p>
+      <input type="text" id="slot5-vehicle" placeholder="Enter Vehicle No" />
+      <button onclick="bookSlot('slot5')">Book Now</button>
+      <p class="timer"></p>
+    </div>
+  </main>
+
+  <footer>
+    <p>© 2025 SPS Project Hub | All rights reserved</p>
   </footer>
 </body>
 </html>
