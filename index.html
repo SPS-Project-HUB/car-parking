@@ -493,31 +493,26 @@
       });
     };
 
-    const formatTime = (timestamp) => {
-      if (!timestamp || timestamp === "null" || timestamp === "undefined") return "-";
-      
-      // Convert to number and handle cases where timestamp might be a string
-      const ts = Number(timestamp);
-      
-      // Handle invalid timestamps
-      if (isNaN(ts) return "-";
-      
-      // Check if timestamp is in seconds (common Firebase format)
-      const date = ts < 10000000000 
-        ? new Date(ts * 1000)  // Convert seconds to milliseconds
-        : new Date(ts);         // Already in milliseconds
-      
-      // Handle invalid dates
-      if (isNaN(date.getTime())) return "-";
-      
-      return date.toLocaleString();
+    const formatTime = (ms) => {
+      if (!ms) return "-";
+      const date = new Date(parseInt(ms));
+      const options = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+      };
+      return date.toLocaleString(undefined, options);
     };
 
     const createLogRow = (log) => {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td>${log.slot}</td>
-        <td>${log.vehicle || '-'}</td>
+        <td>${log.vehicle}</td>
         <td>${formatTime(log.bookingTime)}</td>
         <td>${formatTime(log.occupyTime)}</td>
         <td>${formatTime(log.vacateTime)}</td>
@@ -532,8 +527,8 @@
       table.innerHTML = "";
       fullLogs
         .filter(log =>
-          (!vehicleFilter || (log.vehicle && log.vehicle.toLowerCase().includes(vehicleFilter))) &&
-          (!slotFilter || (log.slot && log.slot.toLowerCase().includes(slotFilter)))
+          (!vehicleFilter || log.vehicle?.toLowerCase().includes(vehicleFilter)) &&
+          (!slotFilter || log.slot?.toLowerCase().includes(slotFilter))
         )
         .forEach(log => table.appendChild(createLogRow(log)));
     };
@@ -541,42 +536,32 @@
     const downloadCSV = () => {
       let csv = "Slot,Vehicle,Booking Time,Occupy Time,Vacate Time\n";
       fullLogs.forEach(log => {
-        csv += `"${log.slot || ''}","${log.vehicle || ''}",` +
-               `"${formatTime(log.bookingTime)}",` +
-               `"${formatTime(log.occupyTime)}",` +
-               `"${formatTime(log.vacateTime)}"\n`;
+        csv += `${log.slot},${log.vehicle},"${formatTime(log.bookingTime)}","${formatTime(log.occupyTime)}","${formatTime(log.vacateTime)}"\n`;
       });
-      
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `parking_logs_${new Date().toISOString().slice(0,10)}.csv`;
-      document.body.appendChild(a);
+      a.download = "parking_logs.csv";
       a.click();
-      document.body.removeChild(a);
     };
 
     const bookSlot = (slot) => {
       const input = document.getElementById(`${slot}-vehicle`);
       const vehicle = input.value.trim();
       if (!vehicle) return alert("Please enter vehicle number");
-      
       set(ref(db, "slots/" + slot), {
         status: "booked",
         vehicle: vehicle,
-        bookingTime: Date.now(), // Store as milliseconds
-        occupyTime: null,
-        vacateTime: null
+        bookingTime: Date.now(),
+        occupyTime: null
       });
-      
       input.value = "";
     };
 
     window.bookSlot = bookSlot;
     window.filterLogs = filterLogs;
     window.downloadCSV = downloadCSV;
-    
     window.onload = () => {
       updateUI();
       loadLogs();
