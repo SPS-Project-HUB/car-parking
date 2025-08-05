@@ -25,7 +25,7 @@
       background: white;
       border-radius: 12px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      width: 220px;
+      width: 240px;
       padding: 15px;
       text-align: center;
     }
@@ -59,6 +59,18 @@
       font-size: 14px;
       color: #444;
     }
+    input[type="text"] {
+      margin-top: 5px;
+      padding: 5px;
+      width: 90%;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .vehicle-info {
+      font-size: 14px;
+      color: #666;
+      margin-top: 5px;
+    }
   </style>
 </head>
 <body>
@@ -70,7 +82,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    // ✅ Your Firebase Configuration
+    // ✅ Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyCSNW4PZkfse5G-s4j9HxtJqkYxuTUFQAo",
       authDomain: "carparkingsystem-e96a9.firebaseapp.com",
@@ -81,7 +93,6 @@
       appId: "1:1074868104297:web:a00c054483ff39f36506f8"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
@@ -93,9 +104,10 @@
       container.innerHTML = "";
 
       slots.forEach(slot => {
-        const slotData = data[slot] || { status: "available", startTime: null };
+        const slotData = data[slot] || { status: "available", startTime: null, vehicleNumber: "" };
         const status = slotData.status;
         const startTime = slotData.startTime;
+        const vehicleNumber = slotData.vehicleNumber || "";
         const isBooked = status === "booked";
 
         const card = document.createElement("div");
@@ -106,8 +118,14 @@
           <div class="status ${isBooked ? 'booked' : ''}">
             Status: <span>${status}</span>
           </div>
-          <button ${isBooked ? 'disabled' : ''} onclick="bookSlot('${slot}')">Pre-Book</button>
-          <div class="timer" id="${slot}-timer">${isBooked ? "Loading..." : ""}</div>
+
+          ${isBooked ? `
+            <div class="vehicle-info">Vehicle: ${vehicleNumber}</div>
+            <div class="timer" id="${slot}-timer">Loading...</div>
+          ` : `
+            <input type="text" id="${slot}-input" placeholder="Enter Vehicle No." />
+            <button onclick="bookSlot('${slot}')">Pre-Book</button>
+          `}
         `;
 
         container.appendChild(card);
@@ -120,7 +138,6 @@
       });
     }
 
-    // Timer function
     function startTimer(slot, startTime) {
       const timerDiv = document.getElementById(`${slot}-timer`);
       if (timers[slot]) clearInterval(timers[slot]);
@@ -135,15 +152,24 @@
 
     // Booking function
     window.bookSlot = function(slot) {
+      const input = document.getElementById(`${slot}-input`);
+      const vehicleNumber = input?.value?.trim();
+
+      if (!vehicleNumber) {
+        alert("Please enter a vehicle number before booking.");
+        return;
+      }
+
       const updates = {};
       updates[`slots/${slot}`] = {
         status: "booked",
-        startTime: Date.now()
+        startTime: Date.now(),
+        vehicleNumber: vehicleNumber
       };
+
       update(ref(db), updates);
     };
 
-    // Listen to slot status in real time
     onValue(ref(db, "slots"), (snapshot) => {
       const data = snapshot.val() || {};
       renderSlots(data);
