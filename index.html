@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -45,27 +45,27 @@
 
             if (status === "booked") {
               btn.disabled = true;
-              info.innerText = Booked by: ${data.vehicle};
+              info.innerText = `Booked by: ${data.vehicle}`;
               const bookingStart = data.bookingTime;
               card.timerInterval = setInterval(() => {
                 const now = Date.now();
                 const diff = Math.floor((now - bookingStart) / 1000);
                 const mins = Math.floor(diff / 60);
                 const secs = diff % 60;
-                timer.innerText = ⏱ Pre-Booking: ${mins}m ${secs}s;
+                timer.innerText = `⏱ Pre-Booking: ${mins}m ${secs}s`;
               }, 1000);
               timer2.innerText = "";
 
             } else if (status === "occupied") {
               btn.disabled = true;
-              info.innerText = Occupied by: ${data.vehicle};
+              info.innerText = `Occupied by: ${data.vehicle}`;
               const occupyStart = data.occupyTime;
               card.occupyInterval = setInterval(() => {
                 const now = Date.now();
                 const diff = Math.floor((now - occupyStart) / 1000);
                 const mins = Math.floor(diff / 60);
                 const secs = diff % 60;
-                timer2.innerText = 🅿 Occupied: ${mins}m ${secs}s;
+                timer2.innerText = `🅿 Occupied: ${mins}m ${secs}s`;
               }, 1000);
               timer.innerText = "";
 
@@ -105,13 +105,13 @@
 
     const createLogRow = (log) => {
       const row = document.createElement("tr");
-      row.innerHTML = 
+      row.innerHTML = `
         <td>${log.slot}</td>
         <td>${log.vehicle}</td>
         <td>${formatTime(log.bookingTime)}</td>
         <td>${formatTime(log.occupyTime)}</td>
         <td>${formatTime(log.vacateTime)}</td>
-      ;
+      `;
       return row;
     };
 
@@ -131,7 +131,7 @@
     const downloadCSV = () => {
       let csv = "Slot,Vehicle,Booking Time,Occupy Time,Vacate Time\n";
       fullLogs.forEach(log => {
-        csv += ${log.slot},${log.vehicle},${formatTime(log.bookingTime)},${formatTime(log.occupyTime)},${formatTime(log.vacateTime)}\n;
+        csv += `${log.slot},${log.vehicle},${formatTime(log.bookingTime)},${formatTime(log.occupyTime)},${formatTime(log.vacateTime)}\n`;
       });
       const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
@@ -142,7 +142,7 @@
     };
 
     const bookSlot = (slot) => {
-      const input = document.getElementById(${slot}-vehicle);
+      const input = document.getElementById(`${slot}-vehicle`);
       const vehicle = input.value.trim();
       if (!vehicle) return alert("Enter vehicle number");
       set(ref(db, "slots/" + slot), {
@@ -168,7 +168,7 @@
     <p>Live Monitoring, Logs, Dual Timers</p>
   </header>
 
- <main class="parking-container">
+  <main class="parking-container">
   <div id="slot1" class="slot-card available">
     <h2>Slot 1</h2>
     <p class="info">Available</p>
