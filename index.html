@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head> 
+<head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Smart Car Parking System</title>
@@ -412,6 +412,7 @@
     const slots = ["slot1", "slot2", "slot3", "slot4", "slot5"];
     let fullLogs = [];
     let occupationStartTimes = {};
+    let finalPreBookingTimes = {}; // Stores the final pre-booking countdown time
 
     const updateUI = () => {
       slots.forEach(slot => {
@@ -441,7 +442,10 @@
                 const diff = Math.floor((now - bookingStart) / 1000);
                 const mins = Math.floor(diff / 60);
                 const secs = diff % 60;
-                timer.innerText = `⏱ Pre-Booking: ${mins}m ${secs}s`;
+                const displayText = `⏱ Pre-Booking: ${mins}m ${secs}s`;
+                timer.innerText = displayText;
+                // Store the final pre-booking time
+                finalPreBookingTimes[slot] = `${mins}m ${secs}s`;
               }, 1000);
               timer2.innerText = "";
 
@@ -468,6 +472,7 @@
               timer.innerText = "";
               timer2.innerText = "";
               delete occupationStartTimes[slot];
+              delete finalPreBookingTimes[slot];
             }
             
             card.previousStatus = status;
@@ -509,9 +514,8 @@
     const formatDuration = (startMs, endMs) => {
       if (!startMs || !endMs) return "-";
       
-      // Ensure positive duration
-      const diffMs = Math.max(0, endMs - startMs);
-      const diffSeconds = Math.floor(diffMs / 1000);
+      const diffSeconds = Math.floor((endMs - startMs) / 1000);
+      if (diffSeconds <= 0) return finalPreBookingTimes[slot] || "0s";
       
       const hours = Math.floor(diffSeconds / 3600);
       const minutes = Math.floor((diffSeconds % 3600) / 60);
@@ -522,12 +526,13 @@
       if (minutes > 0 || hours > 0) parts.push(`${minutes}m`);
       parts.push(`${seconds}s`);
       
-      return parts.join(" ") || "0s";
+      return parts.join(" ");
     };
 
     const createLogRow = (log) => {
       const row = document.createElement("tr");
-      const timeToOccupy = log.occupyTime ? formatDuration(log.bookingTime, log.occupyTime) : "Not occupied";
+      const timeToOccupy = finalPreBookingTimes[log.slot] || 
+                          (log.occupyTime ? formatDuration(log.bookingTime, log.occupyTime) : "Not occupied");
       const parkingDuration = log.vacateTime ? formatDuration(log.occupyTime, log.vacateTime) : "Still parked";
       
       row.innerHTML = `
@@ -556,7 +561,8 @@
     const downloadCSV = () => {
       let csv = "Slot,Vehicle,Booking Time,Time to Occupy,Parking Duration\n";
       fullLogs.forEach(log => {
-        const timeToOccupy = log.occupyTime ? formatDuration(log.bookingTime, log.occupyTime) : "Not occupied";
+        const timeToOccupy = finalPreBookingTimes[log.slot] || 
+                           (log.occupyTime ? formatDuration(log.bookingTime, log.occupyTime) : "Not occupied");
         const parkingDuration = log.vacateTime ? formatDuration(log.occupyTime, log.vacateTime) : "Still parked";
         csv += `${log.slot},${log.vehicle},"${formatTime(log.bookingTime)}","${timeToOccupy}","${parkingDuration}"\n`;
       });
