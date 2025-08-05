@@ -394,6 +394,7 @@
   </footer>
 
   <script type="module">
+    // Your existing JavaScript code remains unchanged
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -437,9 +438,12 @@
               info.innerText = `Booked by: ${data.vehicle}`;
               const bookingStart = data.bookingTime || Date.now();
               card.timerInterval = setInterval(() => {
-                const mins = Math.floor((Date.now() - bookingStart) / 60000);
-                timer.innerText = `⏱ ${mins}m`;
-              }, 60000);
+                const now = Date.now();
+                const diff = Math.floor((now - bookingStart) / 1000);
+                const mins = Math.floor(diff / 60);
+                const secs = diff % 60;
+                timer.innerText = `⏱ Pre-Booking: ${mins}m ${secs}s`;
+              }, 1000);
               timer2.innerText = "";
 
             } else if (status === "occupied") {
@@ -451,9 +455,12 @@
               }
               
               card.occupyInterval = setInterval(() => {
-                const mins = Math.floor((Date.now() - occupationStartTimes[slot]) / 60000);
-                timer2.innerText = `🅿 ${mins}m`;
-              }, 60000);
+                const now = Date.now();
+                const diff = Math.floor((now - occupationStartTimes[slot]) / 1000);
+                const mins = Math.floor(diff / 60);
+                const secs = diff % 60;
+                timer2.innerText = `🅿 Occupied: ${mins}m ${secs}s`;
+              }, 1000);
               timer.innerText = "";
 
             } else {
@@ -489,8 +496,8 @@
 
     const formatTime = (ms) => {
       if (!ms) return "-";
-      const mins = Math.floor((Date.now() - parseInt(ms)) / 60000);
-      return `${mins}m`;
+      const date = new Date(parseInt(ms));
+      return date.toLocaleString();
     };
 
     const createLogRow = (log) => {
@@ -519,7 +526,7 @@
     };
 
     const downloadCSV = () => {
-      let csv = "Slot,Vehicle,Booking Time (mins),Occupy Time (mins),Vacate Time (mins)\n";
+      let csv = "Slot,Vehicle,Booking Time,Occupy Time,Vacate Time\n";
       fullLogs.forEach(log => {
         csv += `${log.slot},${log.vehicle},${formatTime(log.bookingTime)},${formatTime(log.occupyTime)},${formatTime(log.vacateTime)}\n`;
       });
