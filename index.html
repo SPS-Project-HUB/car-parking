@@ -394,7 +394,6 @@
   </footer>
 
   <script type="module">
-    // Your existing JavaScript code remains unchanged
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -494,9 +493,19 @@
       });
     };
 
-    const formatTime = (ms) => {
-      if (!ms) return "-";
-      const date = new Date(parseInt(ms));
+    const formatTime = (timestamp) => {
+      if (!timestamp) return "-";
+      
+      // Convert to number in case it's a string
+      const ts = Number(timestamp);
+      
+      // Check if the timestamp is in seconds (Firebase often uses seconds)
+      // If it's a small number (like under 1,000,000,000), it's probably seconds
+      // If it's a large number (like over 1,000,000,000), it's probably milliseconds
+      const date = ts < 10000000000 
+        ? new Date(ts * 1000)  // Convert seconds to milliseconds
+        : new Date(ts);         // Already in milliseconds
+      
       return date.toLocaleString();
     };
 
