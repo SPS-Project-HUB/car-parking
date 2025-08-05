@@ -1,90 +1,73 @@
 body {
-  margin: 0;
-  padding: 0;
   font-family: 'Segoe UI', sans-serif;
-  background: #f3f6fd;
+  background: #f2f4f8;
+  margin: 0;
+  padding: 20px;
+  text-align: center;
+}
+
+h1 {
+  color: #1f4e79;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+}
+
+.booking-panel {
+  margin-bottom: 20px;
+}
+
+input, select {
+  padding: 10px;
+  font-size: 16px;
+  width: 200px;
+  margin: 5px;
+}
+
+button {
+  padding: 10px 20px;
+  background: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:hover {
+  background: #0056b3;
+}
+
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+}
+
+.slot {
+  width: 150px;
+  height: 150px;
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  color: white;
+  font-size: 18px;
+}
+
+.free {
+  background: #28a745;
+}
+
+.booked {
+  background: #ffc107;
   color: #333;
 }
 
-header {
-  background: #002244;
-  color: white;
-  padding: 30px 0;
-  text-align: center;
-}
-
-header h1 {
-  font-size: 2.5rem;
-  margin: 0;
-}
-
-header p {
-  font-size: 1.1rem;
-  margin-top: 10px;
-}
-
-.parking-container {
-  max-width: 1200px;
-  margin: 40px auto;
-  padding: 0 20px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 30px;
-}
-
-.slot-card {
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  border-left: 6px solid green;
-  transition: 0.3s ease-in-out;
-}
-
-.slot-card h2 {
-  margin: 0 0 10px;
-  font-size: 1.5rem;
-}
-
-.slot-card p {
-  margin: 6px 0;
-  font-weight: 500;
-}
-
-.slot-card input {
-  width: 100%;
-  padding: 10px;
-  margin-top: 8px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 14px;
-}
-
-.slot-card button {
-  margin-top: 12px;
-  padding: 10px;
-  width: 100%;
-  background: #005cbf;
-  color: white;
-  font-size: 15px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.slot-card button:hover {
-  background: #0046a3;
-}
-
-.slot-card.booked {
-  border-left-color: red;
-  background: #fff2f2;
-}
-
-footer {
-  background: #002244;
-  color: white;
-  text-align: center;
-  padding: 20px;
-  margin-top: 50px;
+.occupied {
+  background: #dc3545;
 }
