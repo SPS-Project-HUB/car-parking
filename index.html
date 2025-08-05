@@ -1,39 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Smart Car Parking System</title>
-  <link rel="stylesheet" href="style.css">
-  <script type="module" src="script.js"></script>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <h1>Smart Car Parking System</h1>
-  <div class="slot-container">
+  <header>
+    <h1>🚗 Smart Car Parking System</h1>
+  </header>
+
+  <main class="slot-container">
     <div class="slot" id="slot1">
-      <h3>Slot 1</h3>
-      <p class="status">Status: Loading...</p>
-      <p class="timer">Time: 00:00:00</p>
+      <h2>Slot 1</h2>
+      <p>Status: <span class="status">Loading...</span></p>
+      <p>Time: <span class="timer">00:00:00</span></p>
     </div>
+
     <div class="slot" id="slot2">
-      <h3>Slot 2</h3>
-      <p class="status">Status: Loading...</p>
-      <p class="timer">Time: 00:00:00</p>
+      <h2>Slot 2</h2>
+      <p>Status: <span class="status">Loading...</span></p>
+      <p>Time: <span class="timer">00:00:00</span></p>
     </div>
+
     <div class="slot" id="slot3">
-      <h3>Slot 3</h3>
-      <p class="status">Status: Loading...</p>
-      <p class="timer">Time: 00:00:00</p>
+      <h2>Slot 3</h2>
+      <p>Status: <span class="status">Loading...</span></p>
+      <p>Time: <span class="timer">00:00:00</span></p>
     </div>
+
     <div class="slot" id="slot4">
-      <h3>Slot 4</h3>
-      <p class="status">Status: Loading...</p>
-      <p class="timer">Time: 00:00:00</p>
+      <h2>Slot 4</h2>
+      <p>Status: <span class="status">Loading...</span></p>
+      <p>Time: <span class="timer">00:00:00</span></p>
     </div>
-    <div class="slot" id="slot5">
-      <h3>Slot 5</h3>
-      <p class="status">Status: Loading...</p>
-      <p class="timer">Time: 00:00:00</p>
-    </div>
-  </div>
+  </main>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>
