@@ -45,9 +45,8 @@
 
             if (status === "booked") {
               btn.disabled = true;
-              info.innerText = `Booked by: ${data.vehicle || "N/A"}`;
+              info.innerText = `Booked by: ${data.vehicle}`;
               const bookingStart = data.bookingTime;
-
               card.timerInterval = setInterval(() => {
                 const now = Date.now();
                 const diff = Math.floor((now - bookingStart) / 1000);
@@ -55,14 +54,12 @@
                 const secs = diff % 60;
                 timer.innerText = `⏱ Pre-Booking: ${mins}m ${secs}s`;
               }, 1000);
-
               timer2.innerText = "";
 
             } else if (status === "occupied") {
               btn.disabled = true;
-              info.innerText = `Occupied by: ${data.vehicle || "N/A"}`;
+              info.innerText = `Occupied by: ${data.vehicle}`;
               const occupyStart = data.occupyTime;
-
               card.occupyInterval = setInterval(() => {
                 const now = Date.now();
                 const diff = Math.floor((now - occupyStart) / 1000);
@@ -70,56 +67,74 @@
                 const secs = diff % 60;
                 timer2.innerText = `🅿 Occupied: ${mins}m ${secs}s`;
               }, 1000);
-
               timer.innerText = "";
 
             } else {
-              // FREE
               btn.disabled = false;
               info.innerText = "Available";
               timer.innerText = "";
               timer2.innerText = "";
             }
-
-          } else {
-            card.classList.add("available");
-            btn.disabled = false;
-            info.innerText = "Available";
-            timer.innerText = "";
-            timer2.innerText = "";
           }
         });
       });
     };
 
+    const loadLogs = () => {
+      const logsRef = ref(db, "parkingLogs/");
+      onValue(logsRef, (snapshot) => {
+        const table = document.getElementById("logTableBody");
+        table.innerHTML = "";
+        const logs = snapshot.val();
+        if (logs) {
+          Object.values(logs).reverse().forEach(log => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${log.slot}</td>
+              <td>${log.vehicle}</td>
+              <td>${formatTime(log.bookingTime)}</td>
+              <td>${formatTime(log.occupyTime)}</td>
+              <td>${formatTime(log.vacateTime)}</td>
+            `;
+            table.appendChild(row);
+          });
+        }
+      });
+    };
+
+    const formatTime = (ms) => {
+      if (!ms) return "-";
+      const date = new Date(ms);
+      return date.toLocaleString();
+    };
+
     const bookSlot = (slot) => {
-      const vehicleInput = document.getElementById(`${slot}-vehicle`);
-      const vehicle = vehicleInput.value.trim();
-      if (vehicle === "") {
-        alert("Please enter your vehicle number!");
-        return;
-      }
-      const slotRef = ref(db, "slots/" + slot);
-      set(slotRef, {
+      const input = document.getElementById(`${slot}-vehicle`);
+      const vehicle = input.value.trim();
+      if (!vehicle) return alert("Enter your vehicle number");
+      const refPath = ref(db, "slots/" + slot);
+      set(refPath, {
         status: "booked",
         vehicle: vehicle,
         bookingTime: Date.now()
       });
-      vehicleInput.value = "";
+      input.value = "";
     };
 
     window.bookSlot = bookSlot;
-    window.onload = updateUI;
+    window.onload = () => {
+      updateUI();
+      loadLogs();
+    };
   </script>
 </head>
 <body>
   <header>
     <h1>🚗 Smart Car Parking System</h1>
-    <p>Real-time Monitoring, Booking & Dual Timing</p>
+    <p>Real-time Monitoring with Logs & Dual Timers</p>
   </header>
 
   <main class="parking-container">
-    <!-- 5 Slot Cards -->
     ${[1, 2, 3, 4, 5].map(i => `
       <div id="slot${i}" class="slot-card available">
         <h2>Slot ${i}</h2>
@@ -131,6 +146,22 @@
       </div>
     `).join("")}
   </main>
+
+  <section class="log-section">
+    <h2>📋 Parking Session Logs</h2>
+    <table class="log-table">
+      <thead>
+        <tr>
+          <th>Slot</th>
+          <th>Vehicle</th>
+          <th>Booking Time</th>
+          <th>Occupy Time</th>
+          <th>Vacate Time</th>
+        </tr>
+      </thead>
+      <tbody id="logTableBody"></tbody>
+    </table>
+  </section>
 
   <footer>
     <p>© 2025 SPS Project Hub | All rights reserved</p>
