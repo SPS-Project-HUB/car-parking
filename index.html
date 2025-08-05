@@ -7,11 +7,391 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    /* (Previous CSS styles remain exactly the same) */
+    :root {
+      --primary: #4361ee;
+      --secondary: #3f37c9;
+      --accent: #4895ef;
+      --success: #4cc9f0;
+      --danger: #f72585;
+      --warning: #f8961e;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --gray: #6c757d;
+      --white: #ffffff;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f5f7fa;
+      color: var(--dark);
+      line-height: 1.6;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: var(--white);
+      padding: 1.5rem 0;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+      transform: rotate(30deg);
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      position: relative;
+    }
+
+    header p {
+      font-size: 1rem;
+      opacity: 0.9;
+      position: relative;
+    }
+
+    .parking-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .slot-card {
+      background: var(--white);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      border-top: 4px solid var(--primary);
+    }
+
+    .slot-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .slot-card h2 {
+      font-size: 1.4rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .slot-card h2 i {
+      font-size: 1.2rem;
+    }
+
+    .slot-card .info {
+      font-size: 1rem;
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    .slot-card input {
+      padding: 0.8rem;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      margin: 0.5rem 0;
+      font-size: 0.9rem;
+      transition: border 0.3s ease;
+    }
+
+    .slot-card input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+    }
+
+    .slot-card button {
+      padding: 0.8rem;
+      border: none;
+      border-radius: 8px;
+      background-color: var(--primary);
+      color: white;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .slot-card button:hover {
+      background-color: var(--secondary);
+      transform: translateY(-2px);
+    }
+
+    .slot-card button:disabled {
+      background-color: var(--gray);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .slot-card .timer, .slot-card .occupy-timer {
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      padding: 0.3rem 0.5rem;
+      border-radius: 4px;
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    /* Status Colors */
+    .available {
+      border-top-color: #4ade80;
+    }
+
+    .available .info {
+      background-color: rgba(74, 222, 128, 0.1);
+      color: #166534;
+    }
+
+    .booked {
+      border-top-color: var(--warning);
+    }
+
+    .booked .info {
+      background-color: rgba(248, 150, 30, 0.1);
+      color: #9a3412;
+    }
+
+    .occupied {
+      border-top-color: var(--danger);
+    }
+
+    .occupied .info {
+      background-color: rgba(247, 37, 133, 0.1);
+      color: #9d174d;
+    }
+
+    .log-section {
+      background-color: var(--white);
+      border-radius: 12px;
+      padding: 2rem;
+      margin: 2rem auto;
+      max-width: 1200px;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .log-section h2 {
+      font-size: 1.6rem;
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .log-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .log-controls input {
+      flex: 1;
+      min-width: 200px;
+      padding: 0.8rem 1rem;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+
+    .log-controls input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+    }
+
+    .log-controls button {
+      padding: 0.8rem 1.5rem;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .log-controls button:hover {
+      background-color: var(--secondary);
+      transform: translateY(-2px);
+    }
+
+    .log-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: var(--white);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .log-table th {
+      background-color: var(--primary);
+      color: white;
+      padding: 1rem;
+      text-align: left;
+      font-weight: 500;
+    }
+
+    .log-table td {
+      padding: 0.8rem 1rem;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .log-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .log-table tr:hover td {
+      background-color: rgba(67, 97, 238, 0.05);
+    }
+
+    .log-table tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      background-color: var(--dark);
+      color: var(--white);
+      margin-top: 2rem;
+    }
+
+    @media (max-width: 768px) {
+      .parking-container {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+      }
+      
+      .log-section {
+        padding: 1.5rem;
+        margin: 1rem;
+      }
+      
+      .log-controls {
+        flex-direction: column;
+      }
+      
+      .log-controls input, .log-controls button {
+        width: 100%;
+      }
+      
+      .log-table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
   </style>
 </head>
 <body>
-  <!-- (Previous HTML structure remains exactly the same) -->
+  <header>
+    <h1><i class="fas fa-car"></i> Smart Car Parking System</h1>
+    <p>Real-time monitoring with advanced booking system</p>
+  </header>
+
+  <main class="parking-container">
+    <div id="slot1" class="slot-card available">
+      <h2><i class="fas fa-parking"></i> Slot 1</h2>
+      <p class="info">Available</p>
+      <input type="text" id="slot1-vehicle" placeholder="Enter Vehicle Number" />
+      <button onclick="bookSlot('slot1')"><i class="fas fa-bookmark"></i> Book Now</button>
+      <p class="timer"></p>
+      <p class="occupy-timer"></p>
+    </div>
+    <div id="slot2" class="slot-card available">
+      <h2><i class="fas fa-parking"></i> Slot 2</h2>
+      <p class="info">Available</p>
+      <input type="text" id="slot2-vehicle" placeholder="Enter Vehicle Number" />
+      <button onclick="bookSlot('slot2')"><i class="fas fa-bookmark"></i> Book Now</button>
+      <p class="timer"></p>
+      <p class="occupy-timer"></p>
+    </div>
+    <div id="slot3" class="slot-card available">
+      <h2><i class="fas fa-parking"></i> Slot 3</h2>
+      <p class="info">Available</p>
+      <input type="text" id="slot3-vehicle" placeholder="Enter Vehicle Number" />
+      <button onclick="bookSlot('slot3')"><i class="fas fa-bookmark"></i> Book Now</button>
+      <p class="timer"></p>
+      <p class="occupy-timer"></p>
+    </div>
+    <div id="slot4" class="slot-card available">
+      <h2><i class="fas fa-parking"></i> Slot 4</h2>
+      <p class="info">Available</p>
+      <input type="text" id="slot4-vehicle" placeholder="Enter Vehicle Number" />
+      <button onclick="bookSlot('slot4')"><i class="fas fa-bookmark"></i> Book Now</button>
+      <p class="timer"></p>
+      <p class="occupy-timer"></p>
+    </div>
+    <div id="slot5" class="slot-card available">
+      <h2><i class="fas fa-parking"></i> Slot 5</h2>
+      <p class="info">Available</p>
+      <input type="text" id="slot5-vehicle" placeholder="Enter Vehicle Number" />
+      <button onclick="bookSlot('slot5')"><i class="fas fa-bookmark"></i> Book Now</button>
+      <p class="timer"></p>
+      <p class="occupy-timer"></p>
+    </div>
+  </main>
+
+  <section class="log-section">
+    <h2><i class="fas fa-clipboard-list"></i> Parking Session Logs</h2>
+    <div class="log-controls">
+      <input type="text" id="filterVehicle" placeholder="🔍 Filter by Vehicle" oninput="filterLogs()" />
+      <input type="text" id="filterSlot" placeholder="🔍 Filter by Slot" oninput="filterLogs()" />
+      <button onclick="downloadCSV()"><i class="fas fa-download"></i> Download CSV</button>
+    </div>
+    <table class="log-table">
+      <thead>
+        <tr>
+          <th>Slot</th>
+          <th>Vehicle</th>
+          <th>Booking Time</th>
+          <th>Occupy Time</th>
+          <th>Vacate Time</th>
+        </tr>
+      </thead>
+      <tbody id="logTableBody"></tbody>
+    </table>
+  </section>
+
+  <footer>
+    <p>© 2025 Smart Parking Solutions | All rights reserved</p>
+  </footer>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -57,11 +437,9 @@
               info.innerText = `Booked by: ${data.vehicle}`;
               const bookingStart = data.bookingTime || Date.now();
               card.timerInterval = setInterval(() => {
-                const now = Date.now();
-                const diff = Math.floor((now - bookingStart) / 1000);
-                const mins = Math.floor(diff / 60);
+                const mins = Math.floor((Date.now() - bookingStart) / 60000);
                 timer.innerText = `⏱ ${mins}m`;
-              }, 60000); // Update every minute instead of every second
+              }, 60000);
               timer2.innerText = "";
 
             } else if (status === "occupied") {
@@ -73,11 +451,9 @@
               }
               
               card.occupyInterval = setInterval(() => {
-                const now = Date.now();
-                const diff = Math.floor((now - occupationStartTimes[slot]) / 1000);
-                const mins = Math.floor(diff / 60);
+                const mins = Math.floor((Date.now() - occupationStartTimes[slot]) / 60000);
                 timer2.innerText = `🅿 ${mins}m`;
-              }, 60000); // Update every minute instead of every second
+              }, 60000);
               timer.innerText = "";
 
             } else {
@@ -113,8 +489,7 @@
 
     const formatTime = (ms) => {
       if (!ms) return "-";
-      const diff = Math.floor((Date.now() - parseInt(ms)) / 1000);
-      const mins = Math.floor(diff / 60);
+      const mins = Math.floor((Date.now() - parseInt(ms)) / 60000);
       return `${mins}m`;
     };
 
@@ -130,7 +505,52 @@
       return row;
     };
 
-    /* (Rest of the JavaScript remains exactly the same) */
+    const filterLogs = () => {
+      const vehicleFilter = document.getElementById("filterVehicle").value.toLowerCase();
+      const slotFilter = document.getElementById("filterSlot").value.toLowerCase();
+      const table = document.getElementById("logTableBody");
+      table.innerHTML = "";
+      fullLogs
+        .filter(log =>
+          (!vehicleFilter || log.vehicle?.toLowerCase().includes(vehicleFilter)) &&
+          (!slotFilter || log.slot?.toLowerCase().includes(slotFilter))
+        )
+        .forEach(log => table.appendChild(createLogRow(log)));
+    };
+
+    const downloadCSV = () => {
+      let csv = "Slot,Vehicle,Booking Time (mins),Occupy Time (mins),Vacate Time (mins)\n";
+      fullLogs.forEach(log => {
+        csv += `${log.slot},${log.vehicle},${formatTime(log.bookingTime)},${formatTime(log.occupyTime)},${formatTime(log.vacateTime)}\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "parking_logs.csv";
+      a.click();
+    };
+
+    const bookSlot = (slot) => {
+      const input = document.getElementById(`${slot}-vehicle`);
+      const vehicle = input.value.trim();
+      if (!vehicle) return alert("Please enter vehicle number");
+      set(ref(db, "slots/" + slot), {
+        status: "booked",
+        vehicle: vehicle,
+        bookingTime: Date.now(),
+        occupyTime: null
+      });
+      input.value = "";
+    };
+
+    window.bookSlot = bookSlot;
+    window.filterLogs = filterLogs;
+    window.downloadCSV = downloadCSV;
+    window.onload = () => {
+      updateUI();
+      loadLogs();
+    };
   </script>
 </body>
 </html>
