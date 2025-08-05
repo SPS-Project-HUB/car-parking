@@ -510,8 +510,8 @@
       if (!startMs || !endMs) return "-";
       
       // Ensure positive duration
-      const adjustedEndMs = Math.max(endMs, startMs);
-      const diffSeconds = Math.floor((adjustedEndMs - startMs) / 1000);
+      const diffMs = Math.max(0, endMs - startMs);
+      const diffSeconds = Math.floor(diffMs / 1000);
       
       const hours = Math.floor(diffSeconds / 3600);
       const minutes = Math.floor((diffSeconds % 3600) / 60);
@@ -522,17 +522,20 @@
       if (minutes > 0 || hours > 0) parts.push(`${minutes}m`);
       parts.push(`${seconds}s`);
       
-      return parts.join(" ");
+      return parts.join(" ") || "0s";
     };
 
     const createLogRow = (log) => {
       const row = document.createElement("tr");
+      const timeToOccupy = log.occupyTime ? formatDuration(log.bookingTime, log.occupyTime) : "Not occupied";
+      const parkingDuration = log.vacateTime ? formatDuration(log.occupyTime, log.vacateTime) : "Still parked";
+      
       row.innerHTML = `
         <td>${log.slot}</td>
         <td>${log.vehicle}</td>
         <td>${formatTime(log.bookingTime)}</td>
-        <td>${log.occupyTime ? formatDuration(log.bookingTime, log.occupyTime) : "-"}</td>
-        <td>${log.vacateTime ? formatDuration(log.occupyTime, log.vacateTime) : "-"}</td>
+        <td>${timeToOccupy}</td>
+        <td>${parkingDuration}</td>
       `;
       return row;
     };
@@ -553,8 +556,8 @@
     const downloadCSV = () => {
       let csv = "Slot,Vehicle,Booking Time,Time to Occupy,Parking Duration\n";
       fullLogs.forEach(log => {
-        const timeToOccupy = log.occupyTime ? formatDuration(log.bookingTime, log.occupyTime) : "-";
-        const parkingDuration = log.vacateTime ? formatDuration(log.occupyTime, log.vacateTime) : "-";
+        const timeToOccupy = log.occupyTime ? formatDuration(log.bookingTime, log.occupyTime) : "Not occupied";
+        const parkingDuration = log.vacateTime ? formatDuration(log.occupyTime, log.vacateTime) : "Still parked";
         csv += `${log.slot},${log.vehicle},"${formatTime(log.bookingTime)}","${timeToOccupy}","${parkingDuration}"\n`;
       });
       const blob = new Blob([csv], { type: "text/csv" });
@@ -570,7 +573,6 @@
       const vehicle = input.value.trim();
       if (!vehicle) return alert("Please enter vehicle number");
       
-      // Ensure booking time is properly set
       const bookingTime = Date.now();
       
       set(ref(db, "slots/" + slot), {
