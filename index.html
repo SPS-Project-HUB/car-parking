@@ -22,69 +22,76 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const slots = ["slot1", "slot2", "slot3", "slot4", "slot5"];
-    const bookingTimers = {};
-    const occupancyTimers = {};
+    const timers = {};
 
     const formatTime = (seconds) => {
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;
-      return `${mins}m ${secs}s`;
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    const updateUI = () => {
-      slots.forEach(slot => {
-        const slotRef = ref(db, "slots/" + slot);
-        onValue(slotRef, (snapshot) => {
-          const data = snapshot.val();
-          const card = document.getElementById(slot);
-          const btn = card.querySelector("button");
-          const bookingTimer = card.querySelector(".booking-timer");
-          const occupancyTimer = card.querySelector(".occupancy-timer");
-          const info = card.querySelector(".info");
+    const updateSlot = (slot) => {
+      const slotRef = ref(db, "slots/" + slot);
+      onValue(slotRef, (snapshot) => {
+        const data = snapshot.val();
+        const card = document.getElementById(slot);
+        if (!card) return;
 
-          // Clear existing timers
-          if (bookingTimers[slot]) clearInterval(bookingTimers[slot]);
-          if (occupancyTimers[slot]) clearInterval(occupancyTimers[slot]);
+        const elements = {
+          btn: card.querySelector("button"),
+          bookingTimer: card.querySelector(".booking-timer"),
+          occupancyTimer: card.querySelector(".occupancy-timer"),
+          info: card.querySelector(".info"),
+          status: card.querySelector(".status")
+        };
 
-          if (data) {
-            // Booking Timer (Booking → Occupied)
-            if (data.status === "booked" && data.startTime) {
-              bookingTimers[slot] = setInterval(() => {
-                const now = Date.now();
-                const diff = Math.floor((now - data.startTime) / 1000);
-                bookingTimer.innerText = `Booking: ${formatTime(diff)}`;
-              }, 1000);
-            } else {
-              bookingTimer.innerText = "";
+        // Clear existing timers
+        if (timers[slot]) {
+          clearInterval(timers[slot].booking);
+          clearInterval(timers[slot].occupancy);
+        }
+
+        // Initialize timer object
+        timers[slot] = { booking: null, occupancy: null };
+
+        if (data) {
+          // Booking Timer
+          if (data.status === "booked") {
+            const startTime = data.startTime || Date.now();
+            timers[slot].booking = setInterval(() => {
+              const seconds = Math.floor((Date.now() - startTime) / 1000);
+              elements.bookingTimer.textContent = `Booking: ${formatTime(seconds)}`;
+            }, 1000);
+          }
+
+          // Occupancy Timer (only when IR detects)
+          if (data.occupied && data.detectionTime) {
+            const detectionTime = data.detectionTime;
+            timers[slot].occupancy = setInterval(() => {
+              const seconds = Math.floor((Date.now() - detectionTime) / 1000);
+              elements.occupancyTimer.textContent = `Occupancy: ${formatTime(seconds)}`;
+            }, 1000);
+          }
+
+          // Update UI State
+          const isOccupied = data.occupied || data.status === "booked";
+          card.className = `slot-card ${isOccupied ? "booked" : "available"}`;
+          elements.btn.disabled = isOccupied;
+          elements.info.textContent = isOccupied ? 
+            (data.status === "booked" ? `Booked: ${data.vehicle}` : "Occupied (IR)") : 
+            "Available";
+          elements.status.textContent = isOccupied ? "🟢 Active" : "🔴 Inactive";
+
+          // Show durations when available
+          if (!data.occupied) {
+            if (data.lastOccupancy) {
+              elements.occupancyTimer.textContent = `Last Stay: ${formatTime(data.lastOccupancy)}`;
             }
-
-            // Occupancy Timer (Occupied → Departure)
-            if (data.occupied && data.detectionTime) {
-              occupancyTimers[slot] = setInterval(() => {
-                const now = Date.now();
-                const diff = Math.floor((now - data.detectionTime) / 1000);
-                occupancyTimer.innerText = `Occupied: ${formatTime(diff)}`;
-              }, 1000);
-            } else {
-              occupancyTimer.innerText = data.lastOccupancy ? 
-                `Last Stay: ${formatTime(data.lastOccupancy)}` : "";
-            }
-
-            // Update card status
-            if (data.occupied || data.status === "booked") {
-              card.classList.remove("available");
-              card.classList.add("booked");
-              btn.disabled = true;
-              info.innerText = data.status === "booked" ? 
-                `Booked by: ${data.vehicle}` : "Occupied (IR Sensor)";
-            } else {
-              card.classList.remove("booked");
-              card.classList.add("available");
-              btn.disabled = false;
-              info.innerText = "Available";
+            if (data.bookingDuration) {
+              elements.bookingTimer.textContent = `Booked For: ${formatTime(data.bookingDuration)}`;
             }
           }
-        });
+        }
       });
     };
 
@@ -100,25 +107,31 @@
         status: "booked",
         vehicle: vehicle,
         startTime: Date.now(),
-        occupied: false
+        occupied: false,
+        detectionTime: null
       });
       vehicleInput.value = "";
+      console.log(`Booked ${slot} for ${vehicle}`);
     };
 
+    // Initialize all slots
+    window.onload = () => {
+      slots.forEach(slot => updateSlot(slot));
+      console.log("System initialized. Monitoring slots...");
+    };
     window.bookSlot = bookSlot;
-    window.onload = updateUI;
   </script>
 </head>
 <body>
   <header>
     <h1>🚗 Dual-Timer Parking System</h1>
-    <p>Booking Time + Occupancy Time Tracking</p>
+    <p>Booking Time + Physical Occupancy Time Tracking</p>
   </header>
 
   <main class="parking-container">
-    <!-- Slot Templates (Repeat for all 5 slots) -->
+    <!-- Slot 1 -->
     <div id="slot1" class="slot-card available">
-      <h2>Slot 1</h2>
+      <h2>Slot 1 <span class="status">🔴 Inactive</span></h2>
       <p class="info">Available</p>
       <input type="text" id="slot1-vehicle" placeholder="Enter Vehicle No" />
       <button onclick="bookSlot('slot1')">Book Now</button>
@@ -131,6 +144,7 @@
 
   <footer>
     <p>© 2025 Parking System | Dual-Timer Technology</p>
+    <p class="live-status">Live Status: <span id="system-status">🟢 Operational</span></p>
   </footer>
 </body>
 </html>
