@@ -1,68 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Smart Car Parking System</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAt-8RgxZbg9Cb4YtGqC9kyytjRptWNYXk",
+      authDomain: "carparkingsystem-8bea0.firebaseapp.com",
+      databaseURL: "https://carparkingsystem-8bea0-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "carparkingsystem-8bea0",
+      storageBucket: "carparkingsystem-8bea0.appspot.com",
+      messagingSenderId: "138724264142",
+      appId: "1:138724264142:web:ab951303a38a6ddb25689f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const slots = ["slot1", "slot2", "slot3", "slot4", "slot5"];
+    let fullLogs = [];
+
+    const updateUI = () => {
+      slots.forEach(slot => {
+        const slotRef = ref(db, "slots/" + slot);
+        onValue(slotRef, (snapshot) => {
+          const data = snapshot.val();
+          const card = document.getElementById(slot);
+          const btn = card.querySelector("button");
+          const timer = card.querySelector(".timer");
+          const timer2 = card.querySelector(".occupy-timer");
+          const info = card.querySelector(".info");
+
+          clearInterval(card.timerInterval);
+          clearInterval(card.occupyInterval);
+
+          if (data) {
+            const status = data.status;
+            card.classList.remove("available", "booked", "occupied");
+            card.classList.add(status);
+
+            if (status === "booked") {
+              btn.disabled = true;
+              info.innerText = `Booked by: ${data.vehicle}`;
+              const bookingStart = data.bookingTime;
+              card.timerInterval = setInterval(() => {
+                const now = Date.now();
+                const diff = Math.floor((now - bookingStart) / 1000);
+                const mins = Math.floor(diff / 60);
+                const secs = diff % 60;
+                timer.innerText = `⏱ Pre-Booking: ${mins}m ${secs}s`;
+              }, 1000);
+              timer2.innerText = "";
+
+            } else if (status === "occupied") {
+              btn.disabled = true;
+              info.innerText = `Occupied by: ${data.vehicle}`;
+              const occupyStart = data.occupyTime;
+              card.occupyInterval = setInterval(() => {
+                const now = Date.now();
+                const diff = Math.floor((now - occupyStart) / 1000);
+                const mins = Math.floor(diff / 60);
+                const secs = diff % 60;
+                timer2.innerText = `🅿 Occupied: ${mins}m ${secs}s`;
+              }, 1000);
+              timer.innerText = "";
+
+            } else {
+              btn.disabled = false;
+              info.innerText = "Available";
+              timer.innerText = "";
+              timer2.innerText = "";
+            }
+          }
+        });
+      });
+    };
+
+    const loadLogs = () => {
+      const logsRef = ref(db, "parkingLogs/");
+      onValue(logsRef, (snapshot) => {
+        const table = document.getElementById("logTableBody");
+        table.innerHTML = "";
+        fullLogs = [];
+        const logs = snapshot.val();
+        if (logs) {
+          Object.values(logs).reverse().forEach(log => {
+            fullLogs.push(log);
+            const row = createLogRow(log);
+            table.appendChild(row);
+          });
+        }
+      });
+    };
+
+    const formatTime = (ms) => {
+      if (!ms) return "-";
+      const date = new Date(parseInt(ms));
+      return date.toLocaleString();
+    };
+
+    const createLogRow = (log) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${log.slot}</td>
+        <td>${log.vehicle}</td>
+        <td>${formatTime(log.bookingTime)}</td>
+        <td>${formatTime(log.occupyTime)}</td>
+        <td>${formatTime(log.vacateTime)}</td>
+      `;
+      return row;
+    };
+
+    const filterLogs = () => {
+      const vehicleFilter = document.getElementById("filterVehicle").value.toLowerCase();
+      const slotFilter = document.getElementById("filterSlot").value.toLowerCase();
+      const table = document.getElementById("logTableBody");
+      table.innerHTML = "";
+      fullLogs
+        .filter(log =>
+          (!vehicleFilter || log.vehicle?.toLowerCase().includes(vehicleFilter)) &&
+          (!slotFilter || log.slot?.toLowerCase().includes(slotFilter))
+        )
+        .forEach(log => table.appendChild(createLogRow(log)));
+    };
+
+    const downloadCSV = () => {
+      let csv = "Slot,Vehicle,Booking Time,Occupy Time,Vacate Time\n";
+      fullLogs.forEach(log => {
+        csv += `${log.slot},${log.vehicle},${formatTime(log.bookingTime)},${formatTime(log.occupyTime)},${formatTime(log.vacateTime)}\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "parking_logs.csv";
+      a.click();
+    };
+
+    const bookSlot = (slot) => {
+      const input = document.getElementById(`${slot}-vehicle`);
+      const vehicle = input.value.trim();
+      if (!vehicle) return alert("Enter vehicle number");
+      set(ref(db, "slots/" + slot), {
+        status: "booked",
+        vehicle: vehicle,
+        bookingTime: Date.now()
+      });
+      input.value = "";
+    };
+
+    window.bookSlot = bookSlot;
+    window.filterLogs = filterLogs;
+    window.downloadCSV = downloadCSV;
+    window.onload = () => {
+      updateUI();
+      loadLogs();
+    };
+  </script>
 </head>
 <body>
   <header>
     <h1>🚗 Smart Car Parking System</h1>
-    <p>Live Monitoring, Booking & Logs</p>
+    <p>Live Monitoring, Logs, Dual Timers</p>
   </header>
 
-  <main class="parking-container">
-    <div id="slot1" class="slot-card available">
-      <h2>Slot 1</h2>
-      <p class="info">Available</p>
-      <input type="text" id="slot1-vehicle" placeholder="Enter Vehicle No">
-      <button onclick="bookSlot('slot1')">Book Now</button>
-      <p class="timer"></p>
-      <p class="occupy-timer"></p>
-    </div>
-    <div id="slot2" class="slot-card available">
-      <h2>Slot 2</h2>
-      <p class="info">Available</p>
-      <input type="text" id="slot2-vehicle" placeholder="Enter Vehicle No">
-      <button onclick="bookSlot('slot2')">Book Now</button>
-      <p class="timer"></p>
-      <p class="occupy-timer"></p>
-    </div>
-    <div id="slot3" class="slot-card available">
-      <h2>Slot 3</h2>
-      <p class="info">Available</p>
-      <input type="text" id="slot3-vehicle" placeholder="Enter Vehicle No">
-      <button onclick="bookSlot('slot3')">Book Now</button>
-      <p class="timer"></p>
-      <p class="occupy-timer"></p>
-    </div>
-    <div id="slot4" class="slot-card available">
-      <h2>Slot 4</h2>
-      <p class="info">Available</p>
-      <input type="text" id="slot4-vehicle" placeholder="Enter Vehicle No">
-      <button onclick="bookSlot('slot4')">Book Now</button>
-      <p class="timer"></p>
-      <p class="occupy-timer"></p>
-    </div>
-    <div id="slot5" class="slot-card available">
-      <h2>Slot 5</h2>
-      <p class="info">Available</p>
-      <input type="text" id="slot5-vehicle" placeholder="Enter Vehicle No">
-      <button onclick="bookSlot('slot5')">Book Now</button>
-      <p class="timer"></p>
-      <p class="occupy-timer"></p>
-    </div>
-  </main>
+ <main class="parking-container">
+  <div id="slot1" class="slot-card available">
+    <h2>Slot 1</h2>
+    <p class="info">Available</p>
+    <input type="text" id="slot1-vehicle" placeholder="Enter Vehicle No" />
+    <button onclick="bookSlot('slot1')">Book Now</button>
+    <p class="timer"></p>
+    <p class="occupy-timer"></p>
+  </div>
+  <div id="slot2" class="slot-card available">
+    <h2>Slot 2</h2>
+    <p class="info">Available</p>
+    <input type="text" id="slot2-vehicle" placeholder="Enter Vehicle No" />
+    <button onclick="bookSlot('slot2')">Book Now</button>
+    <p class="timer"></p>
+    <p class="occupy-timer"></p>
+  </div>
+  <div id="slot3" class="slot-card available">
+    <h2>Slot 3</h2>
+    <p class="info">Available</p>
+    <input type="text" id="slot3-vehicle" placeholder="Enter Vehicle No" />
+    <button onclick="bookSlot('slot3')">Book Now</button>
+    <p class="timer"></p>
+    <p class="occupy-timer"></p>
+  </div>
+  <div id="slot4" class="slot-card available">
+    <h2>Slot 4</h2>
+    <p class="info">Available</p>
+    <input type="text" id="slot4-vehicle" placeholder="Enter Vehicle No" />
+    <button onclick="bookSlot('slot4')">Book Now</button>
+    <p class="timer"></p>
+    <p class="occupy-timer"></p>
+  </div>
+  <div id="slot5" class="slot-card available">
+    <h2>Slot 5</h2>
+    <p class="info">Available</p>
+    <input type="text" id="slot5-vehicle" placeholder="Enter Vehicle No" />
+    <button onclick="bookSlot('slot5')">Book Now</button>
+    <p class="timer"></p>
+    <p class="occupy-timer"></p>
+  </div>
+</main>
 
   <section class="log-section">
     <h2>📋 Parking Session Logs</h2>
     <div class="log-controls">
-      <input type="text" id="filterVehicle" placeholder="Filter by Vehicle No" oninput="filterLogs()">
-      <input type="text" id="filterSlot" placeholder="Filter by Slot No" oninput="filterLogs()">
+      <input type="text" id="filterVehicle" placeholder="Filter by Vehicle" oninput="filterLogs()" />
+      <input type="text" id="filterSlot" placeholder="Filter by Slot" oninput="filterLogs()" />
       <button onclick="downloadCSV()">⬇️ Download CSV</button>
     </div>
-
     <table class="log-table">
       <thead>
         <tr>
@@ -73,9 +228,7 @@
           <th>Vacate Time</th>
         </tr>
       </thead>
-      <tbody id="logTableBody">
-        <!-- Logs will be populated here -->
-      </tbody>
+      <tbody id="logTableBody"></tbody>
     </table>
   </section>
 
