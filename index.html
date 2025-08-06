@@ -393,7 +393,7 @@
     <p>© 2025 Smart Parking Solutions | All rights reserved</p>
   </footer>
 
-<script type="module">
+ <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -412,7 +412,7 @@
     const slots = ["slot1", "slot2", "slot3", "slot4", "slot5"];
     let fullLogs = [];
     let occupationStartTimes = {};
-    let lastLogKey = null;
+    let activeLogs = {}; // Tracks active parking sessions
 
     const updateUI = () => {
       slots.forEach(slot => {
@@ -453,16 +453,16 @@
               
               if (!occupationStartTimes[slot] || previousStatus !== "occupied") {
                 occupationStartTimes[slot] = Date.now();
-                // Create/update log entry when vehicle occupies the slot
-                const logKey = `${slot}-${data.vehicle}-${data.bookingTime}`;
-                lastLogKey = logKey;
+                // Create log entry when vehicle occupies the slot
+                const logKey = `${data.vehicle}-${data.bookingTime}`;
+                activeLogs[slot] = logKey;
                 set(ref(db, `parkingLogs/${logKey}`), {
                   slot: slot,
                   vehicle: data.vehicle,
                   bookingTime: data.bookingTime,
                   occupyTime: occupationStartTimes[slot],
                   preBookingDuration: formatDuration(data.bookingTime, occupationStartTimes[slot]),
-                  parkingDuration: "-"
+                  parkingDuration: "-" // Will be updated when vacated
                 });
               }
               
@@ -482,16 +482,16 @@
               timer2.innerText = "";
               
               // Update log entry when vehicle vacates
-              if (previousStatus === "occupied" && lastLogKey) {
+              if (previousStatus === "occupied" && activeLogs[slot]) {
                 const vacateTime = Date.now();
-                set(ref(db, `parkingLogs/${lastLogKey}`), {
+                set(ref(db, `parkingLogs/${activeLogs[slot]}`), {
                   vacateTime: vacateTime,
                   parkingDuration: formatDuration(occupationStartTimes[slot], vacateTime)
                 }, { merge: true });
+                delete activeLogs[slot];
               }
               
               delete occupationStartTimes[slot];
-              lastLogKey = null;
             }
             
             card.previousStatus = status;
@@ -508,20 +508,8 @@
         fullLogs = [];
         const logs = snapshot.val();
         if (logs) {
-          // Group logs by slot-vehicle-bookingTime combination
-          const logGroups = {};
-          Object.entries(logs).forEach(([key, log]) => {
-            const groupKey = `${log.slot}-${log.vehicle}-${log.bookingTime}`;
-            if (!logGroups[groupKey]) {
-              logGroups[groupKey] = { ...log };
-            } else {
-              // Merge properties from multiple entries
-              logGroups[groupKey] = { ...logGroups[groupKey], ...log };
-            }
-          });
-
-          // Convert to array and sort by booking time
-          fullLogs = Object.values(logGroups)
+          // Convert logs object to array and sort by booking time (newest first)
+          fullLogs = Object.values(logs)
             .sort((a, b) => parseInt(b.bookingTime) - parseInt(a.bookingTime));
           
           fullLogs.forEach(log => {
@@ -549,23 +537,14 @@
 
     const formatDuration = (startTime, endTime) => {
       if (!startTime || !endTime) return "-";
-      const diff = Math.max(0, Math.floor((parseInt(endTime) - parseInt(startTime)) / 1000));
-      const hours = Math.floor(diff / 3600);
-      const mins = Math.floor((diff % 3600) / 60);
+      const diff = Math.max(0, Math.floor((parseInt(endTime) - parseInt(startTime)) / 1000);
+      const mins = Math.floor(diff / 60);
       const secs = diff % 60;
-      
-      if (hours > 0) {
-        return `${hours}h ${mins}m ${secs}s`;
-      } else if (mins > 0) {
-        return `${mins}m ${secs}s`;
-      } else {
-        return `${secs}s`;
-      }
+      return `${mins}m ${secs}s`;
     };
 
     const createLogRow = (log) => {
       const row = document.createElement("tr");
-      
       row.innerHTML = `
         <td>${log.slot || "-"}</td>
         <td>${log.vehicle}</td>
