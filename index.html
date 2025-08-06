@@ -381,8 +381,8 @@
           <th>Slot</th>
           <th>Vehicle</th>
           <th>Booking Time</th>
-          <th>Time to Occupy</th>
-          <th>Parking Duration</th>
+          <th>Occupy Time</th>
+          <th>Vacate Time</th>
         </tr>
       </thead>
       <tbody id="logTableBody"></tbody>
@@ -412,8 +412,6 @@
     const slots = ["slot1", "slot2", "slot3", "slot4", "slot5"];
     let fullLogs = [];
     let occupationStartTimes = {};
-    let bookingTimers = {}; // Store timer values for each slot
-    let occupationTimers = {}; // Store occupation timer values for each slot
 
     const updateUI = () => {
       slots.forEach(slot => {
@@ -438,23 +436,12 @@
               btn.disabled = true;
               info.innerText = `Booked by: ${data.vehicle}`;
               const bookingStart = data.bookingTime || Date.now();
-              
-              // Store the booking start time for this slot
-              bookingTimers[slot] = {
-                bookingStart: bookingStart,
-                displayText: ""
-              };
-              
               card.timerInterval = setInterval(() => {
                 const now = Date.now();
                 const diff = Math.floor((now - bookingStart) / 1000);
                 const mins = Math.floor(diff / 60);
                 const secs = diff % 60;
-                const displayText = `⏱ Pre-Booking: ${mins}m ${secs}s`;
-                timer.innerText = displayText;
-                
-                // Update the display text in our tracking object
-                bookingTimers[slot].displayText = displayText;
+                timer.innerText = `⏱ Pre-Booking: ${mins}m ${secs}s`;
               }, 1000);
               timer2.innerText = "";
 
@@ -464,16 +451,6 @@
               
               if (!occupationStartTimes[slot] || card.previousStatus !== "occupied") {
                 occupationStartTimes[slot] = Date.now();
-                
-                // When slot becomes occupied, update the log with the pre-booking timer text
-                if (bookingTimers[slot]) {
-                  const logRef = ref(db, `parkingLogs/${data.logId}`);
-                  set(logRef, {
-                    ...data,
-                    preBookingTimerText: bookingTimers[slot].displayText,
-                    occupyTime: Date.now()
-                  });
-                }
               }
               
               card.occupyInterval = setInterval(() => {
@@ -481,18 +458,7 @@
                 const diff = Math.floor((now - occupationStartTimes[slot]) / 1000);
                 const mins = Math.floor(diff / 60);
                 const secs = diff % 60;
-                const displayText = `🅿 Occupied: ${mins}m ${secs}s`;
-                timer2.innerText = displayText;
-                
-                // Update the occupation timer text
-                occupationTimers[slot] = displayText;
-                
-                // Update the log with the current occupation timer text
-                const logRef = ref(db, `parkingLogs/${data.logId}`);
-                set(logRef, {
-                  ...data,
-                  occupationTimerText: displayText
-                });
+                timer2.innerText = `🅿 Occupied: ${mins}m ${secs}s`;
               }, 1000);
               timer.innerText = "";
 
@@ -502,8 +468,6 @@
               timer.innerText = "";
               timer2.innerText = "";
               delete occupationStartTimes[slot];
-              delete bookingTimers[slot];
-              delete occupationTimers[slot];
             }
             
             card.previousStatus = status;
@@ -537,24 +501,21 @@
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
       };
       return date.toLocaleString(undefined, options);
     };
 
     const createLogRow = (log) => {
       const row = document.createElement("tr");
-      
-      // Use the exact timer text that was displayed
-      const timeToOccupy = log.preBookingTimerText || "Not occupied";
-      const parkingDuration = log.occupationTimerText || "Still parked";
-      
       row.innerHTML = `
         <td>${log.slot}</td>
         <td>${log.vehicle}</td>
         <td>${formatTime(log.bookingTime)}</td>
-        <td>${timeToOccupy.replace("⏱ Pre-Booking: ", "")}</td>
-        <td>${parkingDuration.replace("🅿 Occupied: ", "")}</td>
+        <td>${formatTime(log.occupyTime)}</td>
+        <td>${formatTime(log.vacateTime)}</td>
       `;
       return row;
     };
@@ -573,13 +534,9 @@
     };
 
     const downloadCSV = () => {
-      let csv = "Slot,Vehicle,Booking Time,Time to Occupy,Parking Duration\n";
+      let csv = "Slot,Vehicle,Booking Time,Occupy Time,Vacate Time\n";
       fullLogs.forEach(log => {
-        const timeToOccupy = log.preBookingTimerText ? 
-          log.preBookingTimerText.replace("⏱ Pre-Booking: ", "") : "Not occupied";
-        const parkingDuration = log.occupationTimerText ? 
-          log.occupationTimerText.replace("🅿 Occupied: ", "") : "Still parked";
-        csv += `${log.slot},${log.vehicle},"${formatTime(log.bookingTime)}","${timeToOccupy}","${parkingDuration}"\n`;
+        csv += `${log.slot},${log.vehicle},"${formatTime(log.bookingTime)}","${formatTime(log.occupyTime)}","${formatTime(log.vacateTime)}"\n`;
       });
       const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
@@ -593,31 +550,12 @@
       const input = document.getElementById(`${slot}-vehicle`);
       const vehicle = input.value.trim();
       if (!vehicle) return alert("Please enter vehicle number");
-      
-      const bookingTime = Date.now();
-      const logId = `${slot}_${bookingTime}`;
-      
-      // Create a new log entry
-      set(ref(db, `parkingLogs/${logId}`), {
-        slot: slot,
-        vehicle: vehicle,
-        bookingTime: bookingTime,
-        occupyTime: null,
-        vacateTime: null,
-        preBookingTimerText: null,
-        occupationTimerText: null,
-        logId: logId
-      });
-      
-      // Update the slot status
       set(ref(db, "slots/" + slot), {
         status: "booked",
         vehicle: vehicle,
-        bookingTime: bookingTime,
-        occupyTime: null,
-        logId: logId
+        bookingTime: Date.now(),
+        occupyTime: null
       });
-      
       input.value = "";
     };
 
