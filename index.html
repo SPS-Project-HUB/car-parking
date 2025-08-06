@@ -453,8 +453,8 @@
               
               if (!occupationStartTimes[slot] || previousStatus !== "occupied") {
                 occupationStartTimes[slot] = Date.now();
-                // Create or update log entry with a consistent key
-                const logKey = `log-${slot}-${data.bookingTime}`;
+                // Create log entry when vehicle occupies the slot
+                const logKey = `${slot}-${data.vehicle}-${data.bookingTime}`;
                 activeLogs[slot] = logKey;
                 set(ref(db, `parkingLogs/${logKey}`), {
                   slot: slot,
@@ -481,7 +481,7 @@
               timer.innerText = "";
               timer2.innerText = "";
               
-              // Update the existing log entry when vehicle vacates
+              // Update log entry when vehicle vacates
               if (previousStatus === "occupied" && activeLogs[slot]) {
                 const vacateTime = Date.now();
                 set(ref(db, `parkingLogs/${activeLogs[slot]}`), {
@@ -508,7 +508,7 @@
         fullLogs = [];
         const logs = snapshot.val();
         if (logs) {
-          // Convert to array and filter out incomplete entries
+          // Convert logs object to array and sort by booking time
           fullLogs = Object.values(logs)
             .filter(log => log.slot && log.vehicle && log.bookingTime)
             .sort((a, b) => parseInt(b.bookingTime) - parseInt(a.bookingTime));
@@ -539,20 +539,33 @@
     const formatDuration = (startTime, endTime) => {
       if (!startTime || !endTime) return "-";
       const diff = Math.max(0, Math.floor((parseInt(endTime) - parseInt(startTime)) / 1000));
-      const mins = Math.floor(diff / 60);
+      const hours = Math.floor(diff / 3600);
+      const mins = Math.floor((diff % 3600) / 60);
       const secs = diff % 60;
-      return `${mins}m ${secs}s`;
+      
+      if (hours > 0) {
+        return `${hours}h ${mins}m ${secs}s`;
+      } else if (mins > 0) {
+        return `${mins}m ${secs}s`;
+      } else {
+        return `${secs}s`;
+      }
     };
 
     const createLogRow = (log) => {
       const row = document.createElement("tr");
       
+      // Calculate parking duration if vacate time exists
+      const parkingDuration = log.vacateTime 
+        ? formatDuration(log.occupyTime, log.vacateTime)
+        : "-";
+
       row.innerHTML = `
-        <td>${log.slot}</td>
+        <td>${log.slot || "-"}</td>
         <td>${log.vehicle}</td>
         <td>${formatTime(log.bookingTime)}</td>
         <td>${log.preBookingDuration || "-"}</td>
-        <td>${log.parkingDuration || "-"}</td>
+        <td>${parkingDuration}</td>
       `;
       return row;
     };
@@ -565,7 +578,7 @@
       fullLogs
         .filter(log =>
           (!vehicleFilter || log.vehicle?.toLowerCase().includes(vehicleFilter)) &&
-          (!slotFilter || log.slot.toLowerCase().includes(slotFilter))
+          (!slotFilter || (log.slot && log.slot.toLowerCase().includes(slotFilter)))
         )
         .forEach(log => table.appendChild(createLogRow(log)));
     };
@@ -573,7 +586,11 @@
     const downloadCSV = () => {
       let csv = "Slot,Vehicle,Booking Time,Pre-Booking Duration,Parking Duration\n";
       fullLogs.forEach(log => {
-        csv += `${log.slot},${log.vehicle},"${formatTime(log.bookingTime)}","${log.preBookingDuration || "-"}","${log.parkingDuration || "-"}"\n`;
+        const parkingDuration = log.vacateTime 
+          ? formatDuration(log.occupyTime, log.vacateTime)
+          : "-";
+        
+        csv += `${log.slot || "-"},${log.vehicle},"${formatTime(log.bookingTime)}","${log.preBookingDuration || "-"}","${parkingDuration}"\n`;
       });
       const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
