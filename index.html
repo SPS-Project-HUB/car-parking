@@ -381,8 +381,8 @@
           <th>Slot</th>
           <th>Vehicle</th>
           <th>Booking Time</th>
-          <th>Pre-Booking Duration</th>
-          <th>Parking Duration</th>
+          <th>Occupy Time</th>
+          <th>Vacate Time</th>
         </tr>
       </thead>
       <tbody id="logTableBody"></tbody>
@@ -462,6 +462,12 @@
               }, 1000);
               timer.innerText = "";
 
+              // Update the vacate time in the database
+              set(ref(db, "slots/" + slot), {
+                ...data,
+                vacateTime: now
+              });
+
             } else {
               btn.disabled = false;
               info.innerText = "Available";
@@ -508,80 +514,3 @@
       return date.toLocaleString(undefined, options);
     };
 
-    const formatDuration = (startTime, endTime) => {
-      if (!startTime || !endTime) return "-";
-      const diff = Math.floor((parseInt(endTime) - parseInt(startTime)) / 1000;
-      const hours = Math.floor(diff / 3600);
-      const minutes = Math.floor((diff % 3600) / 60);
-      const seconds = Math.floor(diff % 60);
-      
-      if (hours > 0) {
-        return `${hours}h ${minutes}m ${seconds}s`;
-      } else if (minutes > 0) {
-        return `${minutes}m ${seconds}s`;
-      } else {
-        return `${seconds}s`;
-      }
-    };
-
-    const createLogRow = (log) => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${log.slot}</td>
-        <td>${log.vehicle}</td>
-        <td>${formatTime(log.bookingTime)}</td>
-        <td>${formatDuration(log.bookingTime, log.occupyTime)}</td>
-        <td>${formatDuration(log.occupyTime, log.vacateTime)}</td>
-      `;
-      return row;
-    };
-
-    const filterLogs = () => {
-      const vehicleFilter = document.getElementById("filterVehicle").value.toLowerCase();
-      const slotFilter = document.getElementById("filterSlot").value.toLowerCase();
-      const table = document.getElementById("logTableBody");
-      table.innerHTML = "";
-      fullLogs
-        .filter(log =>
-          (!vehicleFilter || log.vehicle?.toLowerCase().includes(vehicleFilter)) &&
-          (!slotFilter || log.slot?.toLowerCase().includes(slotFilter))
-        )
-        .forEach(log => table.appendChild(createLogRow(log)));
-    };
-
-    const downloadCSV = () => {
-      let csv = "Slot,Vehicle,Booking Time,Pre-Booking Duration,Parking Duration\n";
-      fullLogs.forEach(log => {
-        csv += `${log.slot},${log.vehicle},"${formatTime(log.bookingTime)}","${formatDuration(log.bookingTime, log.occupyTime)}","${formatDuration(log.occupyTime, log.vacateTime)}"\n`;
-      });
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "parking_logs.csv";
-      a.click();
-    };
-
-    const bookSlot = (slot) => {
-      const input = document.getElementById(`${slot}-vehicle`);
-      const vehicle = input.value.trim();
-      if (!vehicle) return alert("Please enter vehicle number");
-      set(ref(db, "slots/" + slot), {
-        status: "booked",
-        vehicle: vehicle,
-        bookingTime: Date.now(),
-        occupyTime: null
-      });
-      input.value = "";
-    };
-
-    window.bookSlot = bookSlot;
-    window.filterLogs = filterLogs;
-    window.downloadCSV = downloadCSV;
-    window.onload = () => {
-      updateUI();
-      loadLogs();
-    };
-  </script>
-</body>
-</html>
