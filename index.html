@@ -393,7 +393,7 @@
     <p>© 2025 Smart Parking Solutions | All rights reserved</p>
   </footer>
 
- <script type="module">
+<script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -412,7 +412,7 @@
     const slots = ["slot1", "slot2", "slot3", "slot4", "slot5"];
     let fullLogs = [];
     let occupationStartTimes = {};
-    let activeLogs = {}; // Tracks active parking sessions
+    let activeLogs = {}; // Track active logs by slot
 
     const updateUI = () => {
       slots.forEach(slot => {
@@ -454,7 +454,7 @@
               if (!occupationStartTimes[slot] || previousStatus !== "occupied") {
                 occupationStartTimes[slot] = Date.now();
                 // Create log entry when vehicle occupies the slot
-                const logKey = `${data.vehicle}-${data.bookingTime}`;
+                const logKey = `${slot}-${data.vehicle}-${data.bookingTime}`;
                 activeLogs[slot] = logKey;
                 set(ref(db, `parkingLogs/${logKey}`), {
                   slot: slot,
@@ -462,7 +462,7 @@
                   bookingTime: data.bookingTime,
                   occupyTime: occupationStartTimes[slot],
                   preBookingDuration: formatDuration(data.bookingTime, occupationStartTimes[slot]),
-                  parkingDuration: "-" // Will be updated when vacated
+                  parkingDuration: "-"
                 });
               }
               
@@ -508,8 +508,9 @@
         fullLogs = [];
         const logs = snapshot.val();
         if (logs) {
-          // Convert logs object to array and sort by booking time (newest first)
+          // Convert logs object to array and sort by booking time
           fullLogs = Object.values(logs)
+            .filter(log => log.slot && log.vehicle && log.bookingTime)
             .sort((a, b) => parseInt(b.bookingTime) - parseInt(a.bookingTime));
           
           fullLogs.forEach(log => {
@@ -537,20 +538,34 @@
 
     const formatDuration = (startTime, endTime) => {
       if (!startTime || !endTime) return "-";
-      const diff = Math.max(0, Math.floor((parseInt(endTime) - parseInt(startTime)) / 1000);
-      const mins = Math.floor(diff / 60);
+      const diff = Math.max(0, Math.floor((parseInt(endTime) - parseInt(startTime)) / 1000));
+      const hours = Math.floor(diff / 3600);
+      const mins = Math.floor((diff % 3600) / 60);
       const secs = diff % 60;
-      return `${mins}m ${secs}s`;
+      
+      if (hours > 0) {
+        return `${hours}h ${mins}m ${secs}s`;
+      } else if (mins > 0) {
+        return `${mins}m ${secs}s`;
+      } else {
+        return `${secs}s`;
+      }
     };
 
     const createLogRow = (log) => {
       const row = document.createElement("tr");
+      
+      // Calculate parking duration if vacate time exists
+      const parkingDuration = log.vacateTime 
+        ? formatDuration(log.occupyTime, log.vacateTime)
+        : "-";
+
       row.innerHTML = `
         <td>${log.slot || "-"}</td>
         <td>${log.vehicle}</td>
         <td>${formatTime(log.bookingTime)}</td>
         <td>${log.preBookingDuration || "-"}</td>
-        <td>${log.parkingDuration || "-"}</td>
+        <td>${parkingDuration}</td>
       `;
       return row;
     };
@@ -571,7 +586,11 @@
     const downloadCSV = () => {
       let csv = "Slot,Vehicle,Booking Time,Pre-Booking Duration,Parking Duration\n";
       fullLogs.forEach(log => {
-        csv += `${log.slot || "-"},${log.vehicle},"${formatTime(log.bookingTime)}","${log.preBookingDuration || "-"}","${log.parkingDuration || "-"}"\n`;
+        const parkingDuration = log.vacateTime 
+          ? formatDuration(log.occupyTime, log.vacateTime)
+          : "-";
+        
+        csv += `${log.slot || "-"},${log.vehicle},"${formatTime(log.bookingTime)}","${log.preBookingDuration || "-"}","${parkingDuration}"\n`;
       });
       const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
