@@ -381,8 +381,8 @@
           <th>Slot</th>
           <th>Vehicle</th>
           <th>Booking Time</th>
-          <th>Occupy Time</th>
-          <th>Vacate Time</th>
+          <th>Pre-Booking Duration</th>
+          <th>Parking Duration</th>
         </tr>
       </thead>
       <tbody id="logTableBody"></tbody>
@@ -508,14 +508,30 @@
       return date.toLocaleString(undefined, options);
     };
 
+    const formatDuration = (startTime, endTime) => {
+      if (!startTime || !endTime) return "-";
+      const diff = Math.floor((parseInt(endTime) - parseInt(startTime)) / 1000;
+      const hours = Math.floor(diff / 3600);
+      const minutes = Math.floor((diff % 3600) / 60);
+      const seconds = Math.floor(diff % 60);
+      
+      if (hours > 0) {
+        return `${hours}h ${minutes}m ${seconds}s`;
+      } else if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+      } else {
+        return `${seconds}s`;
+      }
+    };
+
     const createLogRow = (log) => {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td>${log.slot}</td>
         <td>${log.vehicle}</td>
         <td>${formatTime(log.bookingTime)}</td>
-        <td>${formatTime(log.occupyTime)}</td>
-        <td>${formatTime(log.vacateTime)}</td>
+        <td>${formatDuration(log.bookingTime, log.occupyTime)}</td>
+        <td>${formatDuration(log.occupyTime, log.vacateTime)}</td>
       `;
       return row;
     };
@@ -534,9 +550,9 @@
     };
 
     const downloadCSV = () => {
-      let csv = "Slot,Vehicle,Booking Time,Occupy Time,Vacate Time\n";
+      let csv = "Slot,Vehicle,Booking Time,Pre-Booking Duration,Parking Duration\n";
       fullLogs.forEach(log => {
-        csv += `${log.slot},${log.vehicle},"${formatTime(log.bookingTime)}","${formatTime(log.occupyTime)}","${formatTime(log.vacateTime)}"\n`;
+        csv += `${log.slot},${log.vehicle},"${formatTime(log.bookingTime)}","${formatDuration(log.bookingTime, log.occupyTime)}","${formatDuration(log.occupyTime, log.vacateTime)}"\n`;
       });
       const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
